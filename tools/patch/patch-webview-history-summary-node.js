@@ -21,14 +21,23 @@ function patchExtensionClientContextAsset(filePath) {
   let out = original;
 
   // 兼容上游小版本变更：不强依赖整段变量名（N/F/aS/rS 等），只替换“把 payload C 存入 HISTORY_SUMMARY 节点”的那一小段。
-  // 目标：U={id:0,type:Ie.HISTORY_SUMMARY,history_summary_node:C} -> U={id:0,type:Ie.TEXT,text_node:{content:k3(C)}}
+  // 目标：U={id:0,type:ENUM.HISTORY_SUMMARY,history_summary_node:C} -> U={id:0,type:ENUM.TEXT,text_node:{content:RENDERFN(C)}}
   //
-  // NOTE: k3 是上游内部函数：把 summary payload 按 message_template 渲染为最终字符串。
-  const summaryNodeRe = /\{id:0,type:Ie\.HISTORY_SUMMARY,history_summary_node:([A-Za-z_$][0-9A-Za-z_$]*)\}/g;
+  // NOTE: RENDERFN（曾叫 k3，后改为 wK 等）是上游内部函数：把 summary payload 按 message_template 渲染为最终字符串。
+  //       通过 `function FUNC(e){const t=e.history_end.map(` 模式动态定位，避免硬编码。
+
+  // Step 1: 动态查找渲染函数名（唯一匹配 e.history_end.map 的函数）
+  const renderFnMatches = Array.from(out.matchAll(/function ([A-Za-z_$][0-9A-Za-z_$]*)\(e\)\{const t=e\.history_end\.map\(/g));
+  if (!renderFnMatches.length) throw new Error("extension-client-context history summary render function not found (upstream may have changed)");
+  if (renderFnMatches.length > 1) throw new Error("extension-client-context history summary render function matched multiple times (refuse to patch)");
+  const renderFnName = renderFnMatches[0][1];
+
+  // Step 2: 替换 HISTORY_SUMMARY 节点为 TEXT 节点
+  const summaryNodeRe = /\{id:0,type:([A-Za-z_$][0-9A-Za-z_$]*)\.HISTORY_SUMMARY,history_summary_node:([A-Za-z_$][0-9A-Za-z_$]*)\}/g;
   out = replaceOnceRegex(
     out,
     summaryNodeRe,
-    (m) => `{id:0,type:Ie.TEXT,text_node:{content:k3(${m[1]})}}`,
+    (m) => `{id:0,type:${m[1]}.TEXT,text_node:{content:${renderFnName}(${m[2]})}}`,
     "extension-client-context HISTORY_SUMMARY node slimming"
   );
 

@@ -148,8 +148,8 @@ function patchAuthenticatedCallErrorMessages(src) {
 
   const res = replaceAllOrThrow(
     out,
-    /throw new at\(`API call failed: \$\{([A-Za-z_$][0-9A-Za-z_$]*)\.statusText\}`,Ye\.Internal\)/g,
-    "throw new at(`API call failed: ${$1.status} ${$1.statusText} (${u.toString()})`,Ye.Internal)",
+    /throw new ([A-Za-z_$][0-9A-Za-z_$]*)\(`API call failed: \$\{([A-Za-z_$][0-9A-Za-z_$]*)\.statusText\}`,Ye\.Internal\)/g,
+    "throw new $1(`API call failed: ${$2.status} ${$2.statusText} (${u.toString()})`,Ye.Internal)",
     "makeAuthenticatedCall error message include url"
   );
   // expected: 3 (unary f + stream h + stream f)
