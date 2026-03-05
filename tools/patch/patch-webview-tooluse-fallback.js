@@ -75,9 +75,9 @@ function patchAugmentMessageAsset(filePath) {
     if (!alreadyPatched) {
       out = replaceOnceRegex(
         out,
-        /([A-Za-z_$][0-9A-Za-z_$]*)=([A-Za-z_$][0-9A-Za-z_$]*)\(\(\(\)=>fe\(e\(([A-Za-z_$][0-9A-Za-z_$]*)\),"\$displayableToolUseNodes",([A-Za-z_$][0-9A-Za-z_$]*)\)\.map\(\(([A-Za-z_$][0-9A-Za-z_$]*)=>\5\.tool_use\)\)\.filter\(\(\5=>!!\5\)\)\)\);/g,
+        /([A-Za-z_$][0-9A-Za-z_$]*)=([A-Za-z_$][0-9A-Za-z_$]*)\(\(\(\)=>([A-Za-z_$][0-9A-Za-z_$]*)\(e\(([A-Za-z_$][0-9A-Za-z_$]*)\),"\$displayableToolUseNodes",([A-Za-z_$][0-9A-Za-z_$]*)\)\.map\(\(([A-Za-z_$][0-9A-Za-z_$]*)=>\6\.tool_use\)\)\.filter\(\(\6=>!!\6\)\)\)\);/g,
         (m) =>
-          `${m[1]}=${m[2]}((()=>{const __byok_tool_list_ungrouped_fallback=1;const u=fe(e(${m[3]}),\"$displayableToolUseNodes\",${m[4]});const f=Array.isArray(u)?u.map((x=>x.tool_use)).filter((x=>!!x)):[];return f.length?f:t.toolUseNodes.map((x=>x.tool_use)).filter((x=>!!x))}));`,
+          `${m[1]}=${m[2]}((()=>{const __byok_tool_list_ungrouped_fallback=1;const u=${m[3]}(e(${m[4]}),\"$displayableToolUseNodes\",${m[5]});const f=Array.isArray(u)?u.map((x=>x.tool_use)).filter((x=>!!x)):[];return f.length?f:t.toolUseNodes.map((x=>x.tool_use)).filter((x=>!!x))}));`,
         "AugmentMessage ungrouped tool list fallback"
       );
       changed = true;
@@ -94,9 +94,9 @@ function patchAugmentMessageAsset(filePath) {
     if (!alreadyPatched) {
       out = replaceOnceRegex(
         out,
-        /([A-Za-z_$][0-9A-Za-z_$]*)=\(\)=>fe\(e\(([A-Za-z_$][0-9A-Za-z_$]*)\),"\$toolUseState",([A-Za-z_$][0-9A-Za-z_$]*)\)/g,
+        /([A-Za-z_$][0-9A-Za-z_$]*)=\(\)=>([A-Za-z_$][0-9A-Za-z_$]*)\(e\(([A-Za-z_$][0-9A-Za-z_$]*)\),"\$toolUseState",([A-Za-z_$][0-9A-Za-z_$]*)\)/g,
         (m) =>
-          `${m[1]}=()=>{const s=fe(e(${m[2]}),\"$toolUseState\",${m[3]});if(s)return s;const __byok_toolUseId=String(t&&t.toolUse?(t.toolUse.tool_use_id||t.toolUse.toolUseId||\"\"):\"\");try{const __byok_store=(typeof no===\"function\"?no():null)?.store;const __byok_alt=__byok_store&&typeof cr!==\"undefined\"&&cr&&typeof cr.select===\"function\"?cr.select(__byok_store.getState(),t.requestId,__byok_toolUseId):null;if(__byok_alt)return __byok_alt}catch{}const __byok_msgs=typeof t!=\"undefined\"&&t&&typeof t.postToolUseMessages===\"function\"?t.postToolUseMessages():t&&Array.isArray(t.postToolUseMessages)?t.postToolUseMessages:[];if(Array.isArray(__byok_msgs)&&__byok_msgs.length>0)return{phase:he.completed,result:{text:String(__byok_msgs.join(\"\\n\\n\")),isError:!1,contentNodes:[]}};return{phase:he.completed,result:{text:\"\",isError:!1,contentNodes:[]}}}`,
+          `${m[1]}=()=>{const s=${m[2]}(e(${m[3]}),\"$toolUseState\",${m[4]});if(s)return s;const __byok_toolUseId=String(t&&t.toolUse?(t.toolUse.tool_use_id||t.toolUse.toolUseId||\"\"):\"\");try{const __byok_store=(typeof no===\"function\"?no():null)?.store;const __byok_alt=__byok_store&&typeof cr!==\"undefined\"&&cr&&typeof cr.select===\"function\"?cr.select(__byok_store.getState(),t.requestId,__byok_toolUseId):null;if(__byok_alt)return __byok_alt}catch{}const __byok_msgs=typeof t!=\"undefined\"&&t&&typeof t.postToolUseMessages===\"function\"?t.postToolUseMessages():t&&Array.isArray(t.postToolUseMessages)?t.postToolUseMessages:[];if(Array.isArray(__byok_msgs)&&__byok_msgs.length>0)return{phase:he.completed,result:{text:String(__byok_msgs.join(\"\\n\\n\")),isError:!1,contentNodes:[]}};return{phase:he.completed,result:{text:\"\",isError:!1,contentNodes:[]}}}`,
         "AugmentMessage tool use state fallback"
       );
       changed = true;
