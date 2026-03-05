@@ -3,7 +3,12 @@ name: build-release
 on:
   push:
     branches: [master, main]
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release version (e.g., v1.0.0) - leave empty for rolling release only'
+        required: false
+        type: string
 
 permissions:
   contents: write
@@ -85,6 +90,21 @@ jobs:
           allowUpdates: true
           replacesArtifacts: true
           bodyFile: dist/rolling.release.md
+          artifacts: |
+            dist/*.vsix
+            dist/endpoint-coverage.report.md
+            dist.upstream.lock.json
+            upstream.lock.json
+
+      - name: Publish Version Release
+        if: github.event.inputs.version != ''
+        uses: ncipollo/release-action@v1
+        with:
+          tag: ${{ github.event.inputs.version }}
+          name: Release ${{ github.event.inputs.version }}
+          prerelease: false
+          makeLatest: true
+          generateReleaseNotes: true
           artifacts: |
             dist/*.vsix
             dist/endpoint-coverage.report.md
