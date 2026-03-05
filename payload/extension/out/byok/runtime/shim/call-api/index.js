@@ -75,11 +75,6 @@ async function handleCompletion({ cfg, route, ep, body, transform, timeoutMs, ab
   return safeTransform(transform, makeBackCompletionResult(text), ep);
 }
 
-async function handleEdit({ cfg, route, ep, body, transform, timeoutMs, abortSignal, requestId }) {
-  const text = await completeTextForEndpoint({ cfg, route, ep, body, timeoutMs, abortSignal, requestId, kind: "edit" });
-  return safeTransform(transform, makeBackTextResult(text), ep);
-}
-
 async function handleChat({ cfg, route, ep, body, transform, timeoutMs, abortSignal, upstreamApiToken, upstreamCompletionURL, requestId }) {
   const out = await byokChat({
     cfg,
@@ -122,7 +117,6 @@ const CALL_API_HANDLERS = {
   "/chat": handleChat,
   "/completion": handleCompletion,
   "/chat-input-completion": handleCompletion,
-  "/edit": handleEdit,
   "/next_edit_loc": handleNextEditLoc
 };
 

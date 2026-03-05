@@ -129,7 +129,6 @@ async function handleNextEditStream({ cfg, route, ep, body, transform, timeoutMs
 const CALL_API_STREAM_HANDLERS = {
   "/chat-stream": handleChatStream,
   "/prompt-enhancer": handleChatResultDeltaStream,
-  "/generate-conversation-title": handleChatResultDeltaStream,
   "/instruction-stream": handleInstructionLikeStream,
   "/smart-paste-stream": handleInstructionLikeStream,
   "/generate-commit-message-stream": handleChatResultDeltaStream,
