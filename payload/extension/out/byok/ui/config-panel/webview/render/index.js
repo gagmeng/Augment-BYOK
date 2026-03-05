@@ -7,22 +7,20 @@
   const ENDPOINT_GROUPS_V1 = [
     {
       id: "llm_data_plane",
-      label: "LLM 数据面（13）",
+      label: "LLM 数据面（11）",
       endpoints: [
         /* BEGIN GENERATED: LLM_ENDPOINTS */
         "/get-models",
         "/chat",
         "/completion",
         "/chat-input-completion",
-        "/edit",
         "/next_edit_loc",
         "/chat-stream",
         "/prompt-enhancer",
         "/instruction-stream",
         "/smart-paste-stream",
         "/next-edit-stream",
-        "/generate-commit-message-stream",
-        "/generate-conversation-title"
+        "/generate-commit-message-stream"
         /* END GENERATED: LLM_ENDPOINTS */
       ]
     },
@@ -134,7 +132,6 @@
     "/chat": "非流式 chat（或某些场景的 chat 请求）",
     "/completion": "编辑器 inline completion（短文本）",
     "/chat-input-completion": "Chat 输入框智能补全",
-    "/edit": "代码编辑/改写（输出文本或结构化编辑结果）",
     "/next_edit_loc": "Next Edit 定位（候选位置 JSON）",
     "/chat-stream": "核心聊天流（Augment NDJSON）",
     "/prompt-enhancer": "提示词增强（stream）",
@@ -142,7 +139,6 @@
     "/smart-paste-stream": "Smart Paste（stream）",
     "/next-edit-stream": "Next Edit 建议（stream）",
     "/generate-commit-message-stream": "Commit message（stream）",
-    "/generate-conversation-title": "会话标题（stream）",
     /* END GENERATED: LLM_ENDPOINT_MEANINGS */
 
     "/remote-agents/create": "创建远程 agent",

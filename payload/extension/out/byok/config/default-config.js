@@ -72,7 +72,6 @@ function defaultConfig() {
         "/chat": { mode: "byok" },
         "/completion": { mode: "byok" },
         "/chat-input-completion": { mode: "byok" },
-        "/edit": { mode: "byok" },
         "/next_edit_loc": { mode: "byok" },
         "/chat-stream": { mode: "byok" },
         "/prompt-enhancer": { mode: "byok" },
@@ -80,7 +79,6 @@ function defaultConfig() {
         "/smart-paste-stream": { mode: "byok" },
         "/next-edit-stream": { mode: "byok" },
         "/generate-commit-message-stream": { mode: "byok" },
-        "/generate-conversation-title": { mode: "byok" },
         /* END GENERATED: DEFAULT_LLM_ROUTING_RULES */
 
         "/user-secrets/list": { mode: "disabled" },
