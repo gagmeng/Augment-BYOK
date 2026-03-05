@@ -51,12 +51,12 @@ function main() {
 
   const upstream = analysis?.upstream || {};
   const header = [
-    "# LLM 端点覆盖矩阵（13）",
+    "# LLM 端点覆盖矩阵（11）",
     "",
     `- upstream: ${String(upstream.publisher || "augment")}/${String(upstream.extension || "vscode-augment")}@${String(upstream.version || "unknown")}`,
     `- analysis: ${path.relative(repoRoot, analysisPath)}`,
     "",
-    "## 概览（13×输入/输出形状）",
+    "## 概览（11×输入/输出形状）",
     "",
     "| endpoint | kind | upstream back type | input shape (keys) | output shape (keys) |",
     "|---|---|---|---|---|"
