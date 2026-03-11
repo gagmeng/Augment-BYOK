@@ -1,17 +1,19 @@
 "use strict";
 
-const { debug, warn } = require("../../../infra/log");
+const { audit, debug, warn } = require("../../../infra/log");
 const { normalizeString, utf8ByteLen } = require("../../../infra/util");
 const { captureAugmentToolDefinitions } = require("../../../config/state");
-const { resolveExtraSystemPrompt } = require("../../../config/prompts");
-const { maybeSummarizeAndCompactAugmentChatRequest, deleteHistorySummaryCache } = require("../../../core/augment-history-summary/auto");
 const { normalizeAugmentChatRequest } = require("../../../core/augment-chat");
 const { shouldRequestThinking, stripThinkingAndReasoningFromRequestDefaults } = require("../../../core/thinking-control");
+const { maybeSummarizeAndCompactAugmentChatRequest, deleteHistorySummaryCache } = require("../../../core/augment-history-summary/auto");
+const { mergeChatResponseMeta } = require("../../../core/chat-response-meta");
 const { maybeInjectOfficialCodebaseRetrieval } = require("../../official/codebase-retrieval");
 const { maybeInjectOfficialContextCanvas } = require("../../official/context-canvas");
 const { maybeInjectOfficialExternalSources } = require("../../official/external-sources");
 const { maybeHydrateAssetNodesFromUpstream } = require("../../upstream/assets");
 const { maybeHydrateCheckpointNodesFromUpstream } = require("../../upstream/checkpoints");
+const { maybeBuildDelegatedAugmentChatRequest } = require("../../upstream/official-chat-delegation");
+const { auditDelegationHit, auditDelegationFailure, normalizeDelegationSource } = require("../../upstream/official-delegation-shared");
 const { deriveWorkspaceFileChunksFromRequest } = require("../../workspace/file-chunks");
 const { providerLabel, providerRequestContext } = require("../common");
 const { MAX_TOKENS_ALIAS_KEYS, normalizePositiveInt, pickPositiveIntFromRecord } = require("../../../providers/request-defaults-util");
@@ -128,7 +130,18 @@ function logAugmentChatStart({ kind, requestId, provider, providerType, model, r
   );
 }
 
-async function prepareAugmentChatRequestForByok({ cfg, req, requestedModel, fallbackProvider, fallbackModel, timeoutMs, abortSignal, upstreamCompletionURL, upstreamApiToken, requestId }) {
+async function prepareAugmentChatRequestForByok({
+  cfg,
+  req,
+  requestedModel,
+  fallbackProvider,
+  fallbackModel,
+  timeoutMs,
+  abortSignal,
+  upstreamCompletionURL,
+  upstreamApiToken,
+  requestId
+}) {
   const rid = normalizeString(requestId);
   const meta = { checkpointNotFound: false, workspaceFileChunks: [] };
   const convId = normalizeString(req?.conversation_id ?? req?.conversationId ?? req?.conversationID);
@@ -149,31 +162,40 @@ async function prepareAugmentChatRequestForByok({ cfg, req, requestedModel, fall
   // 即使 boundary requestId 不变，rolling summary 也可能失效（造成上下文回退不一致）。
   // 兜底：检测到 request_id_override 时直接删除该对话的 summary cache。
   if (convId && requestIdOverride) {
-    await runStep(
-      "historySummary cache invalidate after request_id_override failed (ignored)",
-      async () => await deleteHistorySummaryCache(convId)
-    );
+    await runStep("historySummary cache invalidate after request_id_override failed (ignored)", async () => await deleteHistorySummaryCache(convId));
   }
 
-  const checkpointRes = await runStep(
-    "upstream checkpoints hydrate failed (ignored)",
-    async () => await maybeHydrateCheckpointNodesFromUpstream(req, { timeoutMs, abortSignal })
-  );
+  const checkpointRes = await runStep("upstream checkpoints hydrate failed (ignored)", async () => await maybeHydrateCheckpointNodesFromUpstream(req, { timeoutMs, abortSignal }));
   if (checkpointRes && typeof checkpointRes === "object" && checkpointRes.checkpointNotFound === true) meta.checkpointNotFound = true;
+
   // Editable History / 用户修改历史：上游可能通过 checkpointManager 注入 user-modified changes 到 chat_history。
   // 这会让 rolling summary 的缓存失效（即使 boundary requestId 没变，内容也可能变了）。
   // 兜底：一旦检测到 injected>0，直接按 conversationId 失效该对话的 History Summary cache。
   if (convId && checkpointRes && typeof checkpointRes === "object" && Number(checkpointRes.injected) > 0) {
-    await runStep(
-      "historySummary cache invalidate after editable history failed (ignored)",
-      async () => await deleteHistorySummaryCache(convId)
-    );
+    await runStep("historySummary cache invalidate after editable history failed (ignored)", async () => await deleteHistorySummaryCache(convId));
   }
 
-  await runStep("historySummary failed (ignored)", async () => await maybeSummarizeAndCompactAugmentChatRequest({ cfg, req, requestedModel, fallbackProvider, fallbackModel, timeoutMs, abortSignal }));
-  await runStep("official codebase retrieval inject failed (ignored)", async () => await maybeInjectOfficialCodebaseRetrieval({ req, timeoutMs, abortSignal, upstreamCompletionURL, upstreamApiToken }));
-  await runStep("official context canvas inject failed (ignored)", async () => await maybeInjectOfficialContextCanvas({ req, timeoutMs, abortSignal, upstreamCompletionURL, upstreamApiToken }));
-  await runStep("official external sources inject failed (ignored)", async () => await maybeInjectOfficialExternalSources({ req, timeoutMs, abortSignal, upstreamCompletionURL, upstreamApiToken }));
+  await runStep("historySummary failed (ignored)", async () =>
+    await maybeSummarizeAndCompactAugmentChatRequest({
+      cfg,
+      req,
+      requestedModel,
+      fallbackProvider,
+      fallbackModel,
+      timeoutMs,
+      abortSignal
+    })
+  );
+
+  await runStep("official codebase retrieval inject failed (ignored)", async () =>
+    await maybeInjectOfficialCodebaseRetrieval({ req, timeoutMs, abortSignal, upstreamCompletionURL, upstreamApiToken })
+  );
+  await runStep("official context canvas inject failed (ignored)", async () =>
+    await maybeInjectOfficialContextCanvas({ req, timeoutMs, abortSignal, upstreamCompletionURL, upstreamApiToken })
+  );
+  await runStep("official external sources inject failed (ignored)", async () =>
+    await maybeInjectOfficialExternalSources({ req, timeoutMs, abortSignal, upstreamCompletionURL, upstreamApiToken })
+  );
 
   try {
     meta.workspaceFileChunks = deriveWorkspaceFileChunksFromRequest(req, { maxChunks: 80 });
@@ -196,18 +218,44 @@ function resolveSupportParallelToolUse(req) {
   return fdf.support_parallel_tool_use === true || fdf.supportParallelToolUse === true;
 }
 
-async function buildByokAugmentChatContext({ kind, endpoint, cfg, provider, model, requestedModel, body, timeoutMs, abortSignal, upstreamCompletionURL, upstreamApiToken, requestId }) {
+async function buildByokAugmentChatContext({
+  kind,
+  endpoint,
+  cfg,
+  provider,
+  model,
+  requestedModel,
+  body,
+  timeoutMs,
+  abortSignal,
+  upstreamCompletionURL,
+  upstreamApiToken,
+  requestId
+}) {
   const label = normalizeString(kind) === "chat-stream" ? "chat-stream" : "chat";
   const ep = normalizeString(endpoint) || (label === "chat-stream" ? "/chat-stream" : "/chat");
 
   const prc = providerRequestContext(provider);
   const { type, baseUrl, apiKey, extraHeaders } = prc;
   let requestDefaults = prc.requestDefaults;
-  const req = normalizeAugmentChatRequest(body);
-  const byokExtraSystem = resolveExtraSystemPrompt(cfg, ep);
-  if (byokExtraSystem) req.byok_system_prompt = byokExtraSystem;
-  const conversationId = normalizeString(req?.conversation_id ?? req?.conversationId ?? req?.conversationID);
+  let req = normalizeAugmentChatRequest(body);
   const rid = normalizeString(requestId);
+  let delegatedSource = "";
+  let delegatedMeta = null;
+  const delegated = await maybeBuildDelegatedAugmentChatRequest({
+    endpoint: ep,
+    body
+  });
+  if (!(delegated && delegated.ok && delegated.req && typeof delegated.req === "object")) {
+    const message = auditDelegationFailure("official assembler delegation failed", delegated?.reason);
+    throw new Error(message);
+  }
+  req = normalizeAugmentChatRequest(delegated.req);
+  delegatedSource = normalizeDelegationSource(delegated.source);
+  delegatedMeta = delegated.meta && typeof delegated.meta === "object" ? delegated.meta : null;
+  auditDelegationHit(`[${label}] delegated official assembler hit:`, delegatedSource, { fallbackSource: "unknown" });
+
+  const conversationId = normalizeString(req?.conversation_id ?? req?.conversationId ?? req?.conversationID);
 
   // 非用户对话轮次（例如工具回填后的 continuation）不需要上游“thinking/reasoning”，避免多次思考导致开销/中断。
   if (!shouldRequestThinking(req)) {
@@ -227,9 +275,10 @@ async function buildByokAugmentChatContext({ kind, endpoint, cfg, provider, mode
   const summary = summarizeAugmentChatRequest(req);
   logAugmentChatStart({ kind: label, requestId: rid, provider, providerType: type, model, requestedModel, conversationId, summary });
 
-  const traceLabel = `[${label}] upstream${rid ? ` rid=${rid}` : ""} provider=${providerLabel(provider)} type=${type || "unknown"} model=${normalizeString(model) || "unknown"}`;
+  const traceLabel = `[${label}] upstream${rid ? ` rid=${rid}` : ""} provider=${providerLabel(provider)} type=${type || "unknown"} model=${normalizeString(model) || "unknown"}${delegatedSource ? ` delegate=${delegatedSource}` : ""}`;
 
   if (isAugmentChatRequestEmpty(summary)) {
+    const responseMeta = mergeChatResponseMeta();
     return {
       kind: label,
       ep,
@@ -242,8 +291,9 @@ async function buildByokAugmentChatContext({ kind, endpoint, cfg, provider, mode
       requestDefaults,
       req,
       summary,
-      checkpointNotFound: false,
-      workspaceFileChunks: [],
+      checkpointNotFound: responseMeta.checkpointNotFound,
+      workspaceFileChunks: responseMeta.workspaceFileChunks,
+      responseMeta,
       traceLabel,
       empty: true
     };
@@ -261,8 +311,9 @@ async function buildByokAugmentChatContext({ kind, endpoint, cfg, provider, mode
     upstreamApiToken,
     requestId: rid
   });
-  const checkpointNotFound = prep && typeof prep === "object" && prep.checkpointNotFound === true;
-  const workspaceFileChunks = prep && typeof prep === "object" && Array.isArray(prep.workspaceFileChunks) ? prep.workspaceFileChunks : [];
+  const responseMeta = mergeChatResponseMeta(delegatedMeta, prep);
+  const checkpointNotFound = responseMeta.checkpointNotFound;
+  const workspaceFileChunks = responseMeta.workspaceFileChunks;
 
   // 自动推断输出上限：仅在用户未配置任何 max tokens 时注入，避免破坏用户意图。
   // 与固定默认值不同，这里会尝试基于 model 的上下文窗口（从名称推断）与 prompt 体积动态计算。
@@ -288,6 +339,7 @@ async function buildByokAugmentChatContext({ kind, endpoint, cfg, provider, mode
     summary,
     checkpointNotFound,
     workspaceFileChunks,
+    responseMeta,
     traceLabel,
     empty: false
   };

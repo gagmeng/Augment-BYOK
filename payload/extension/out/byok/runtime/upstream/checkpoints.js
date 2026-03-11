@@ -8,12 +8,7 @@ const { REQUEST_NODE_CHECKPOINT_REF, REQUEST_NODE_EDIT_EVENTS } = require("../..
 const { getByokUpstreamGlobals, createTimedCache, getCachedSingleton } = require("./discovery");
 
 function isCheckpointManagerCandidate(v) {
-  return (
-    v &&
-    typeof v === "object" &&
-    typeof v.getCheckpointByRequestId === "function" &&
-    typeof v.getAggregateCheckpoint === "function"
-  );
+  return v && typeof v === "object" && typeof v.getCheckpointByRequestId === "function" && typeof v.getAggregateCheckpoint === "function";
 }
 
 const CHECKPOINT_MANAGER_CACHE = createTimedCache(30_000);
@@ -64,12 +59,7 @@ function buildSingleEditFromTextDiff(originalCode, modifiedCode, { maxChars = 12
   while (prefix < al.length && prefix < bl.length && al[prefix] === bl[prefix]) prefix += 1;
 
   let suffix = 0;
-  while (
-    suffix < al.length - prefix &&
-    suffix < bl.length - prefix &&
-    al[al.length - 1 - suffix] === bl[bl.length - 1 - suffix]
-  )
-    suffix += 1;
+  while (suffix < al.length - prefix && suffix < bl.length - prefix && al[al.length - 1 - suffix] === bl[bl.length - 1 - suffix]) suffix += 1;
 
   const beforeLines = al.slice(prefix, Math.max(prefix, al.length - suffix));
   const afterLines = bl.slice(prefix, Math.max(prefix, bl.length - suffix));
@@ -141,7 +131,10 @@ async function hydrateCheckpointRefNode(checkpointManager, node, { abortSignal }
   if (!cp) {
     try {
       if (typeof checkpointManager.getAggregateCheckpoint === "function" && (fromTs != null || toTs != null)) {
-        cp = await checkpointManager.getAggregateCheckpoint({ ...(fromTs != null ? { minTimestamp: fromTs } : {}), ...(toTs != null ? { maxTimestamp: toTs } : {}) });
+        cp = await checkpointManager.getAggregateCheckpoint({
+          ...(fromTs != null ? { minTimestamp: fromTs } : {}),
+          ...(toTs != null ? { maxTimestamp: toTs } : {})
+        });
       }
     } catch {
       cp = null;
@@ -194,7 +187,9 @@ function hasHydratableCheckpointNodes(req) {
 function exchangeHasEditEventsNode(exchange) {
   const ex = asRecord(exchange);
   const nodes = [...asArray(ex.request_nodes), ...asArray(ex.structured_request_nodes), ...asArray(ex.nodes)];
-  return nodes.some((n) => normalizeNodeType(n) === REQUEST_NODE_EDIT_EVENTS && asRecord(pick(n, ["edit_events_node", "editEventsNode"])).edit_events != null);
+  return nodes.some(
+    (n) => normalizeNodeType(n) === REQUEST_NODE_EDIT_EVENTS && asRecord(pick(n, ["edit_events_node", "editEventsNode"])).edit_events != null
+  );
 }
 
 async function maybeInjectUserModifiedChangesIntoHistory(checkpointManager, req, { abortSignal } = {}) {
@@ -287,7 +282,16 @@ async function maybeHydrateCheckpointNodesFromUpstream(req, { timeoutMs, abortSi
       `[upstream checkpoints] ref_hydrated=${checkpointRefHydrated} ref_tried=${checkpointRefTried} injected=${injected} timeoutMs=${Number(timeoutMs) || 0} not_found=${String(checkpointNotFound)}`
     );
   }
-  return { ok: true, changed, checkpointNotFound, checkpointRefTried, checkpointRefHydrated, injected, reason: "ok" };
+  return {
+    ok: true,
+    changed,
+    checkpointNotFound,
+    checkpointRefTried,
+    checkpointRefHydrated,
+    injected,
+    reason: "ok"
+  };
 }
 
 module.exports = { maybeHydrateCheckpointNodesFromUpstream };
+

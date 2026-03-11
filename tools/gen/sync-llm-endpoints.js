@@ -130,10 +130,13 @@ function main() {
 
   const specs = validateSpecs(LLM_ENDPOINT_SPECS);
   const llmCount = specs.length;
+  const officialChatSpecs = specs.filter((s) => s.endpoint === "/chat" || s.endpoint === "/chat-stream");
+  const officialExecutionSpecs = specs.filter((s) => s.endpoint !== "/get-models");
 
   const docsPath = path.join(repoRoot, "docs", "ENDPOINTS.md");
   const uiPath = path.join(repoRoot, "payload", "extension", "out", "byok", "ui", "config-panel", "webview", "render", "index.js");
   const defaultCfgPath = path.join(repoRoot, "payload", "extension", "out", "byok", "config", "default-config.js");
+  const officialDelegationPath = path.join(repoRoot, "payload", "extension", "out", "byok", "core", "official-delegation.js");
 
   let docs = readText(docsPath);
   docs = replaceAndAssertMatch(docs, /^(# ENDPOINTS：\s*\d+\s*\/\s*)\d+/m, `$1${llmCount}`, "docs header LLM count");
@@ -184,6 +187,22 @@ function main() {
     generateDefaultConfigRoutingRulesBlock(specs, defaultIndent)
   );
 
+  let officialDelegation = readText(officialDelegationPath);
+  const chatIndent = indentOfMarkerLine(officialDelegation, "/* BEGIN GENERATED: OFFICIAL_CHAT_ENDPOINTS */");
+  officialDelegation = replaceBetweenMarkers(
+    officialDelegation,
+    "/* BEGIN GENERATED: OFFICIAL_CHAT_ENDPOINTS */",
+    "/* END GENERATED: OFFICIAL_CHAT_ENDPOINTS */",
+    generateUiEndpointsBlock(officialChatSpecs, chatIndent)
+  );
+  const execIndent = indentOfMarkerLine(officialDelegation, "/* BEGIN GENERATED: OFFICIAL_EXECUTION_DELEGATION_ENDPOINTS */");
+  officialDelegation = replaceBetweenMarkers(
+    officialDelegation,
+    "/* BEGIN GENERATED: OFFICIAL_EXECUTION_DELEGATION_ENDPOINTS */",
+    "/* END GENERATED: OFFICIAL_EXECUTION_DELEGATION_ENDPOINTS */",
+    generateUiEndpointsBlock(officialExecutionSpecs, execIndent)
+  );
+
   if (args.check) {
     const docsNow = readText(docsPath);
     const uiNow = readText(uiPath);
@@ -191,6 +210,7 @@ function main() {
     if (docsNow !== docs) bad.push(path.relative(repoRoot, docsPath));
     if (uiNow !== ui) bad.push(path.relative(repoRoot, uiPath));
     if (readText(defaultCfgPath) !== defaultCfg) bad.push(path.relative(repoRoot, defaultCfgPath));
+    if (readText(officialDelegationPath) !== officialDelegation) bad.push(path.relative(repoRoot, officialDelegationPath));
     if (bad.length) {
       console.error(`[sync-llm-endpoints] OUTDATED (run: node tools/gen/sync-llm-endpoints.js --write)`);
       for (const p of bad) console.error(`- ${p}`);
@@ -207,6 +227,7 @@ function main() {
     if (docsBefore !== docs) writeText(docsPath, docs);
     if (uiBefore !== ui) writeText(uiPath, ui);
     if (defaultCfgBefore !== defaultCfg) writeText(defaultCfgPath, defaultCfg);
+    if (readText(officialDelegationPath) !== officialDelegation) writeText(officialDelegationPath, officialDelegation);
     ok("wrote updated files");
     return;
   }

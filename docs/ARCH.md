@@ -1,6 +1,6 @@
 # ARCH：架构与最小补丁面（单 VSIX）
 
-目标：**最小破坏面 + 可审计 + 可回滚**（只接管 13 个 LLM 数据面端点）。
+目标：**最小破坏面 + 可审计 + 可回滚**（只接管 11 个 LLM 数据面端点）。
 
 > 全量修改功能（对上游 VSIX 的“全量改动面”清单）：见仓库根目录 `README.md` 的同名章节。
 
@@ -9,7 +9,7 @@
 - Goals：对齐 Augment 自定义协议（重点 `/chat-stream` NDJSON + tool use）；端点级路由（`byok|official|disabled`）；`globalState` 持久化 + 面板手填 + `Save` 热更新；错误/超时/取消可控 + 上游升级 fail-fast。
 - Non-goals：不复刻控制面/权限/Secrets/遥测等能力（如 Remote Agents）；不引入 settings/env/yaml/SecretStorage 作为配置源；不做 autoAuth。
 - Constraints：不读取/不写入 `augment.advanced.*` settings；构建产物必须包含 injector 且必须通过 `autoAuth=0` guard。
-- Acceptance：BYOK 关闭立即回到官方链路；BYOK 开启时 13 个 LLM 数据面端点按路由工作（见 `docs/ENDPOINTS.md`）。
+- Acceptance：BYOK 关闭立即回到官方链路；BYOK 开启时 11 个 LLM 数据面端点按路由工作（见 `docs/ENDPOINTS.md`）。
 
 ## 构建（Build）
 
@@ -26,7 +26,7 @@
 
 - `callApi/callApiStream` → `maybeHandleCallApi*()` → `decideRoute()` → `byok|official|disabled`
 - `runtimeEnabled=false` 即软回滚：shim 返回 `undefined`/empty stream → 回到官方链路（不改配置）
-- 端点覆盖范围：仅 13 个 LLM 数据面端点有 BYOK 语义实现（见 `docs/ENDPOINTS.md`）
+- 端点覆盖范围：仅 11 个 LLM 数据面端点有 BYOK 语义实现（见 `docs/ENDPOINTS.md`）
 
 ## 代码布局（BYOK payload）
 
@@ -40,7 +40,7 @@
 
 ## core 约定（避免重复实现）
 
-- `core/provider-text.js`：`{system, messages}` → provider 文本（complete + stream deltas）；`/completion`、`/edit`、`/prompt-enhancer` 等复用
+- `core/provider-text.js`：`{system, messages}` → provider 文本（complete + stream deltas）；`/completion`、`/prompt-enhancer`、`/generate-commit-message-stream` 等复用
 - `core/provider-augment-chat.js`：Augment chat req → provider chat（complete + stream chunks）；`/chat`、`/chat-stream`、historySummary/self-test 复用
 
 ## providers 约定（避免重复实现）

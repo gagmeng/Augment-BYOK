@@ -22,7 +22,7 @@ async function byokChat({ cfg, provider, model, requestedModel, body, timeoutMs,
     upstreamApiToken,
     requestId
   });
-  if (ctx.empty) return makeBackChatResult("", { nodes: [] });
+  if (ctx.empty) return makeBackChatResult("", { nodes: [], meta: ctx.responseMeta });
 
   const text = await withTiming(ctx.traceLabel, async () =>
     await completeAugmentChatTextByProviderType({
@@ -38,10 +38,7 @@ async function byokChat({ cfg, provider, model, requestedModel, body, timeoutMs,
     })
   );
 
-  const out = makeBackChatResult(text, { nodes: [] });
-  if (ctx.checkpointNotFound) out.checkpoint_not_found = true;
-  if (ctx.workspaceFileChunks.length) out.workspace_file_chunks = ctx.workspaceFileChunks;
-  return out;
+  return makeBackChatResult(text, { nodes: [], meta: ctx.responseMeta });
 }
 
 module.exports = { byokChat };

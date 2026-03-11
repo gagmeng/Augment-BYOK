@@ -7,6 +7,20 @@ const { clampInt } = require("../number-utils");
 const { bestMatchIndex, bestInsertionIndex } = require("../text-match");
 const { utf32Length, utf16ToUtf32Offset, sliceUtf32 } = require("../unicode-utils");
 
+function tailWithMarker(s, maxChars) {
+  const text = typeof s === "string" ? s : "";
+  const n = Number.isFinite(Number(maxChars)) && Number(maxChars) > 0 ? Math.floor(Number(maxChars)) : 0;
+  if (!n || text.length <= n) return text;
+  return `…(truncated)\n${text.slice(text.length - n)}`;
+}
+
+function headWithMarker(s, maxChars) {
+  const text = typeof s === "string" ? s : "";
+  const n = Number.isFinite(Number(maxChars)) && Number(maxChars) > 0 ? Math.floor(Number(maxChars)) : 0;
+  if (!n || text.length <= n) return text;
+  return `${text.slice(0, n)}\n…(truncated)`;
+}
+
 function pickSelectedText(body) {
   const b = body && typeof body === "object" ? body : {};
   const v = b.selected_text ?? b.selectedText ?? b.selected_code ?? b.selectedCode;
@@ -80,9 +94,22 @@ function buildNextEditStreamRuntimeContext(body) {
   let existingCode = selectedText;
   if (!existingCode && blobText) existingCode = sliceUtf32(blobText, selectionBegin, selectionEnd);
 
+  const PROMPT_WINDOW_CHARS = 12000;
+  const promptPrefix = prefix || (blobText ? tailWithMarker(sliceUtf32(blobText, 0, selectionBegin), PROMPT_WINDOW_CHARS) : "");
+  const promptSelectedText =
+    typeof selectedText === "string" && selectedText
+      ? headWithMarker(selectedText, PROMPT_WINDOW_CHARS)
+      : blobText
+        ? headWithMarker(sliceUtf32(blobText, selectionBegin, selectionEnd), PROMPT_WINDOW_CHARS)
+        : "";
+  const promptSuffix = suffix || (blobText ? headWithMarker(sliceUtf32(blobText, selectionEnd), PROMPT_WINDOW_CHARS) : "");
+
   const promptBody = {
     ...(b && typeof b === "object" ? b : {}),
     ...(blobs ? { blobs } : null),
+    ...(typeof promptPrefix === "string" ? { prefix: promptPrefix } : null),
+    ...(typeof promptSelectedText === "string" ? { selected_text: promptSelectedText } : null),
+    ...(typeof promptSuffix === "string" ? { suffix: promptSuffix } : null),
     selection_begin_char: selectionBegin,
     selection_end_char: selectionEnd
   };

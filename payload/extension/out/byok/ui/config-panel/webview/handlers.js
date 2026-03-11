@@ -242,8 +242,6 @@
       return setUiState({ cfg, status: "Provider baseUrl set to default (pending save).", dirty: true }, { preserveEdits: false });
     }
 
-    if (typeof ns.handlePromptsAction === "function" && ns.handlePromptsAction({ action: a, gatherConfigFromDom, setUiState })) return;
-
     if (a === "save") {
       postToExtension({ type: "save", config: gatherConfigFromDom() });
       return setUiState({ status: "Saving..." }, { preserveEdits: true });

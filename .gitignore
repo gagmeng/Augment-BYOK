@@ -3,3 +3,6 @@ dist/
 tmp/
 
 config.yaml
+
+webview.log
+vscode.log

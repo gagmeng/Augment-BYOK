@@ -1,6 +1,6 @@
 "use strict";
 
-const { debug } = require("../../../infra/log");
+const { debug, audit } = require("../../../infra/log");
 const { ensureConfigManager, state } = require("../../../config/state");
 const { decideRoute } = require("../../../core/router");
 const { deleteHistorySummaryCache } = require("../../../core/augment-history-summary/auto");
@@ -60,7 +60,7 @@ async function resolveByokRouteContext({ endpoint, body, timeoutMs, logPrefix })
   if (!state.runtimeEnabled) return { requestId, ep, timeoutMs: t, cfg, route: null, runtimeEnabled: false };
 
   const route = decideRoute({ cfg, endpoint: ep, body, runtimeEnabled: state.runtimeEnabled });
-  debug(`[${String(logPrefix || "callApi")}] ${formatRouteForLog(route, { requestId })}`);
+  audit(`[${String(logPrefix || "callApi")}] ${formatRouteForLog(route, { requestId })}`);
   return { requestId, ep, timeoutMs: t, cfg, route, runtimeEnabled: true };
 }
 

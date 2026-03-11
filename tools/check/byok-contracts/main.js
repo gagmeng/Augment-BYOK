@@ -27,8 +27,8 @@ function main(argv = process.argv) {
 
   const requiredRelFiles = [
     "out/byok/runtime/bootstrap/index.js",
-    "out/byok/runtime/official/common.js",
     "out/byok/runtime/official/get-models.js",
+    "out/byok/runtime/official/common.js",
     "out/byok/runtime/official/codebase-retrieval.js",
     "out/byok/runtime/official/context-canvas.js",
     "out/byok/runtime/official/external-sources.js",
@@ -41,9 +41,16 @@ function main(argv = process.argv) {
     "out/byok/runtime/shim/next-edit/index.js",
     "out/byok/runtime/shim/common/index.js",
     "out/byok/runtime/shim/augment-chat/index.js",
+    "out/byok/runtime/shim/text-assembly/index.js",
     "out/byok/runtime/upstream/discovery.js",
     "out/byok/runtime/upstream/assets.js",
     "out/byok/runtime/upstream/checkpoints.js",
+    "out/byok/runtime/upstream/official-chat-delegation.js",
+    "out/byok/runtime/upstream/official-text-delegation.js",
+    "out/byok/runtime/upstream/text-assembly/prompt-utils.js",
+    "out/byok/runtime/upstream/text-assembly/endpoint-fields.js",
+    "out/byok/runtime/upstream/text-assembly/endpoint-fields-basic.js",
+    "out/byok/runtime/upstream/text-assembly/endpoint-fields-next-edit-loc.js",
     "out/byok/runtime/workspace/file-chunks.js",
     "out/byok/config/config.js",
     "out/byok/config/default-config.js",
@@ -54,6 +61,7 @@ function main(argv = process.argv) {
     "out/byok/core/protocol.js",
     "out/byok/core/model-registry.js",
     "out/byok/core/model-picker.js",
+    "out/byok/core/official-delegation.js",
     "out/byok/core/augment-protocol.js",
     "out/byok/core/provider-types.js",
     "out/byok/core/provider-text.js",
@@ -83,8 +91,6 @@ function main(argv = process.argv) {
     "out/byok/core/next-edit/fields.js",
     "out/byok/core/next-edit/loc-utils.js",
     "out/byok/core/next-edit/stream-utils.js",
-    "out/byok/prompts/next-edit-stream.js",
-    "out/byok/prompts/next-edit-loc.js",
     "out/byok/infra/constants.js",
     "out/byok/infra/util.js",
     "out/byok/infra/log.js",
@@ -131,6 +137,7 @@ function main(argv = process.argv) {
   assertContains(extJs, "__augment_byok_augment_interceptor_injected_v1", "augment interceptor injected");
   assertContains(extJs, "__augment_byok_bootstrap_injected_v1", "bootstrap injected");
   assertContains(extJs, "__augment_byok_expose_upstream_v1", "expose upstream (toolsModel) injected");
+  assertContains(extJs, "__augment_byok_upstream.officialChatDelegation", "expose upstream (official chat delegation) injected");
   assertContains(extJs, "__augment_byok_official_overrides_patched_v1", "official overrides patched");
   assertContains(extJs, "__augment_byok_callapi_shim_patched_v1", "callApi shim patched");
   assertContains(extJs, "__augment_byok_model_picker_byok_only_v1", "model picker (BYOK-only) patched");
@@ -138,6 +145,7 @@ function main(argv = process.argv) {
   assertContains(extJs, "__augment_byok_tasklist_auto_root_patched_v1", "tasklist auto root patched");
   assertContains(extJs, "__augment_byok_tasklist_add_tasks_sanitize_empty_ids_patched_v1", "tasklist add_tasks sanitize empty ids patched");
   assertContains(extJs, "__augment_byok_tasklist_add_tasks_errors_patched_v1", "tasklist add_tasks errors patched");
+  assertContains(extJs, "__augment_byok_tasklist_reorganize_noop_errors_patched_v1", "tasklist reorganize no-op errors patched");
   assert(!extJs.includes("case \"/autoAuth\"") && !extJs.includes("handleAutoAuth"), "autoAuth guard failed (post-check)");
   ok("extension.js markers ok");
 

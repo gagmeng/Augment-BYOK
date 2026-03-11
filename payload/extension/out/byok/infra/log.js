@@ -121,6 +121,10 @@ function debug(...args) {
   console.log(PREFIX, ...sanitizeArgs(args));
 }
 
+function audit(...args) {
+  console.log(PREFIX, ...sanitizeArgs(args));
+}
+
 function info(...args) {
   console.log(PREFIX, ...sanitizeArgs(args));
 }
@@ -133,4 +137,4 @@ function error(...args) {
   console.error(PREFIX, ...sanitizeArgs(args));
 }
 
-module.exports = { debug, info, warn, error, redactText };
+module.exports = { debug, audit, info, warn, error, redactText };

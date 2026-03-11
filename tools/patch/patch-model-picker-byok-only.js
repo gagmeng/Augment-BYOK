@@ -1,19 +1,16 @@
 #!/usr/bin/env node
 "use strict";
 
-const fs = require("fs");
 const path = require("path");
 
-const { ensureMarker, findMatchIndexes } = require("../lib/patch");
+const { injectIntoArrowPropertyFunctions } = require("../lib/patch");
+const { loadPatchText, savePatchText } = require("./patch-target");
 
 const MARKER = "__augment_byok_model_picker_byok_only_v1";
 
 function patchModelPickerByokOnly(filePath) {
-  if (!fs.existsSync(filePath)) throw new Error(`missing file: ${filePath}`);
-  const original = fs.readFileSync(filePath, "utf8");
-  if (original.includes(MARKER)) return { changed: false, reason: "already_patched" };
-
-  const needle = /getMergedAdditionalChatModels\s*=\s*\(\s*\)\s*=>\s*\{/g;
+  const { original, alreadyPatched } = loadPatchText(filePath, { marker: MARKER });
+  if (alreadyPatched) return { changed: false, reason: "already_patched" };
 
   const injection =
     `try{` +
@@ -27,18 +24,11 @@ function patchModelPickerByokOnly(filePath) {
     `}` +
     `}catch{}`;
 
-  const indexes = findMatchIndexes(original, needle, "getMergedAdditionalChatModels");
-  let next = original;
-  for (let i = indexes.length - 1; i >= 0; i--) {
-    const idx = indexes[i];
-    const openBrace = next.indexOf("{", idx);
-    if (openBrace < 0) throw new Error("getMergedAdditionalChatModels patch: failed to locate function body opening brace");
-    next = next.slice(0, openBrace + 1) + injection + next.slice(openBrace + 1);
-  }
+  const injected = injectIntoArrowPropertyFunctions(original, "getMergedAdditionalChatModels", injection);
+  let next = injected.out;
 
-  next = ensureMarker(next, MARKER);
-  fs.writeFileSync(filePath, next, "utf8");
-  return { changed: true, reason: "patched", patched: indexes.length };
+  savePatchText(filePath, next, { marker: MARKER });
+  return { changed: true, reason: "patched", patched: injected.count };
 }
 
 module.exports = { patchModelPickerByokOnly };

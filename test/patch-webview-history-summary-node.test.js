@@ -24,23 +24,24 @@ function readUtf8(filePath) {
   return fs.readFileSync(filePath, "utf8");
 }
 
-test("patchWebviewHistorySummaryNode: slims HISTORY_SUMMARY node (snake_case prop)", () => {
+test("patchWebviewHistorySummaryNode: slims HISTORY_SUMMARY node with upstream renderer alias", () => {
   withTempDir("augment-byok-webview-hs-", (dir) => {
     const extDir = path.join(dir, "extension");
     const assetsDir = path.join(extDir, "common-webviews", "assets");
     const filePath = path.join(assetsDir, "extension-client-context-test.js");
 
-    const fixture =
-      "function wK(e){const t=e.history_end.map(kK).join(\"\");return e.message_template.replace(t,e)}\n" +
-      "const X={id:0,type:Ie.HISTORY_SUMMARY,history_summary_node:C};\n";
-    writeUtf8(filePath, fixture);
+    const src = [
+      `function wK(e){const t=e.history_end.map(x=>x).join("");return e.message_template.replace(/x/g,()=>t)}`,
+      `function GZ({summaryText:e,summarizationRequestId:t,numExchangesDroppedInBeginning:n,abridgedHistoryText:i,tail:a,messageTemplate:o,incrementalFields:r}){const s={summary_text:e,summarization_request_id:t,history_beginning_dropped_num_exchanges:n,history_middle_abridged_text:i,history_end:a,message_template:o,...r};return{id:0,type:Ze.HISTORY_SUMMARY,history_summary_node:s}}`
+    ].join("\n");
+    writeUtf8(filePath, src + "\n");
 
     patchWebviewHistorySummaryNode(extDir);
 
     const out = readUtf8(filePath);
-    assert.ok(!out.includes("type:Ie.HISTORY_SUMMARY"), "HISTORY_SUMMARY node not removed");
-    assert.ok(out.includes("type:Ie.TEXT"), "TEXT node not injected");
-    assert.ok(out.includes("text_node:{content:wK(C)}"), "TEXT node did not reference wK(C)");
+    assert.ok(!out.includes("type:Ze.HISTORY_SUMMARY,history_summary_node:s"), "HISTORY_SUMMARY node not removed");
+    assert.ok(out.includes("type:Ze.TEXT"), "TEXT node not injected");
+    assert.ok(out.includes("text_node:{content:wK(s)}"), "TEXT node did not reference summary formatter");
     assert.ok(out.includes("__augment_byok_webview_history_summary_node_slim_v1"), "marker missing");
   });
 });

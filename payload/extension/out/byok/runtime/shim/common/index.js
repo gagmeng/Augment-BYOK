@@ -25,7 +25,7 @@ function formatRouteForLog(route, opts) {
   const endpoint = normalizeString(r.endpoint);
   const mode = normalizeString(r.mode) || "unknown";
   const reason = normalizeString(r.reason);
-  const providerId = normalizeString(r.provider?.id);
+  const providerId = normalizeString(r.provider?.id) || normalizeString(r.providerId);
   const providerType = normalizeString(r.provider?.type);
   const model = normalizeString(r.model);
   const requestedModel = normalizeString(r.requestedModel);

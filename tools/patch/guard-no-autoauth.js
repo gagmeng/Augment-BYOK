@@ -1,16 +1,14 @@
 #!/usr/bin/env node
 "use strict";
 
-const fs = require("fs");
 const path = require("path");
+const { readText } = require("../lib/fs");
+const { assertContainsNone } = require("../lib/patch");
 
 function guardNoAutoAuth(filePath) {
-  if (!fs.existsSync(filePath)) throw new Error(`missing file: ${filePath}`);
-  const src = fs.readFileSync(filePath, "utf8");
+  const src = readText(filePath);
   const needles = ["case \"/autoAuth\"", "handleAutoAuth", "__augment_byok_autoauth_patched"];
-  for (const n of needles) {
-    if (src.includes(n)) throw new Error(`autoAuth guard failed: found ${JSON.stringify(n)}`);
-  }
+  assertContainsNone(src, needles, "autoAuth guard failed");
   return { ok: true };
 }
 
@@ -24,4 +22,3 @@ if (require.main === module) {
   }
   guardNoAutoAuth(filePath);
 }
-

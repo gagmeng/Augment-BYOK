@@ -7,7 +7,6 @@ const { getOfficialConnection } = require("../../../config/official");
 const { fetchOfficialGetModels } = require("../../official/get-models");
 const { ensureModelRegistryFeatureFlags } = require("../../../core/model-registry");
 const {
-  buildMessagesForEndpoint,
   makeBackTextResult,
   makeBackCompletionResult,
   makeBackNextEditLocationResult,
@@ -20,8 +19,10 @@ const { pickPath, pickNumResults } = require("../../../core/next-edit/fields");
 const { byokCompleteText } = require("../byok-text");
 const { byokChat } = require("../byok-chat");
 const { resolveByokRouteContext } = require("../route");
+const { resolveByokTextPromptContext } = require("../text-assembly");
 const { maybeAugmentBodyWithWorkspaceBlob, pickNextEditLocationCandidates } = require("../next-edit");
 const { providerLabel } = require("../common");
+const { rememberUpstreamCallHost } = require("../../upstream/discovery");
 
 async function handleGetModels({ cfg, ep, transform, abortSignal, timeoutMs, upstreamApiToken, upstreamCompletionURL, requestId }) {
   const byokModels = buildByokModelsFromConfig(cfg);
@@ -62,9 +63,14 @@ async function handleGetModels({ cfg, ep, transform, abortSignal, timeoutMs, ups
 }
 
 async function completeTextForEndpoint({ cfg, route, ep, body, timeoutMs, abortSignal, requestId, kind }) {
-  const { system, messages } = buildMessagesForEndpoint(ep, body, cfg);
+  const { system, messages, delegatedSource } = await resolveByokTextPromptContext({
+    cfg,
+    route,
+    endpoint: ep,
+    body
+  });
   const suffix = normalizeString(kind) || "complete";
-  const label = `[callApi ${ep}] rid=${requestId} ${suffix} provider=${providerLabel(route.provider)} model=${normalizeString(route.model) || "unknown"}`;
+  const label = `[callApi ${ep}] rid=${requestId} ${suffix} provider=${providerLabel(route.provider)} model=${normalizeString(route.model) || "unknown"}${delegatedSource ? ` delegate=${delegatedSource}` : ""}`;
   return await withTiming(label, async () =>
     await byokCompleteText({ provider: route.provider, model: route.model, system, messages, timeoutMs, abortSignal })
   );
@@ -122,7 +128,8 @@ const CALL_API_HANDLERS = {
 
 const SUPPORTED_CALL_API_ENDPOINTS = Object.freeze(Object.keys(CALL_API_HANDLERS).sort());
 
-async function maybeHandleCallApi({ endpoint, body, transform, timeoutMs, abortSignal, upstreamApiToken, upstreamCompletionURL }) {
+async function maybeHandleCallApi({ endpoint, body, transform, timeoutMs, abortSignal, upstreamApiToken, upstreamCompletionURL, upstreamCallHost }) {
+  rememberUpstreamCallHost(upstreamCallHost, { stream: false });
   const { requestId, ep, timeoutMs: t, cfg, route, runtimeEnabled } = await resolveByokRouteContext({
     endpoint,
     body,
@@ -141,15 +148,9 @@ async function maybeHandleCallApi({ endpoint, body, transform, timeoutMs, abortS
   }
   if (route.mode !== "byok") return undefined;
 
-  try {
-    const handler = CALL_API_HANDLERS[ep];
-    if (!handler) return undefined;
-    return await handler({ cfg, route, ep, body, transform, timeoutMs: t, abortSignal, upstreamApiToken, upstreamCompletionURL, requestId });
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
-    warn("callApi BYOK failed, fallback official", { requestId, endpoint: ep, error: msg });
-    return undefined;
-  }
+  const handler = CALL_API_HANDLERS[ep];
+  if (!handler) return undefined;
+  return await handler({ cfg, route, ep, body, transform, timeoutMs: t, abortSignal, upstreamApiToken, upstreamCompletionURL, requestId });
 }
 
 module.exports = { maybeHandleCallApi, SUPPORTED_CALL_API_ENDPOINTS };

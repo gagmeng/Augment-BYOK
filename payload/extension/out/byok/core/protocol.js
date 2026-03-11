@@ -1,43 +1,8 @@
 "use strict";
 
 const { normalizeString, randomId } = require("../infra/util");
+const { applyChatResponseMeta } = require("./chat-response-meta");
 const { ensureModelRegistryFeatureFlags } = require("./model-registry");
-const { resolveExtraSystemPrompt } = require("../config/prompts");
-const { buildPromptEnhancerPrompt } = require("../prompts/prompt-enhancer");
-const { buildCompletionPrompt } = require("../prompts/completion");
-const { buildChatInputCompletionPrompt } = require("../prompts/chat-input-completion");
-const { buildEditPrompt } = require("../prompts/edit");
-const { buildInstructionStreamPrompt } = require("../prompts/instruction-stream");
-const { buildSmartPasteStreamPrompt } = require("../prompts/smart-paste-stream");
-const { buildCommitMessageStreamPrompt } = require("../prompts/commit-message-stream");
-const { buildConversationTitlePrompt } = require("../prompts/conversation-title");
-const { buildNextEditStreamPrompt } = require("../prompts/next-edit-stream");
-const { buildNextEditLocPrompt } = require("../prompts/next-edit-loc");
-
-function buildFallbackChatPrompt(body) {
-  const b = body && typeof body === "object" ? body : {};
-  const message = typeof b.message === "string" ? b.message : typeof b.prompt === "string" ? b.prompt : typeof b.instruction === "string" ? b.instruction : "";
-  const user = message.trim() ? message : "Hello";
-  return { system: "", messages: [{ role: "user", content: user }] };
-}
-
-function buildMessagesForEndpoint(endpoint, body, cfg) {
-  const ep = normalizeString(endpoint);
-  const extraSystem = resolveExtraSystemPrompt(cfg, ep);
-  if (ep === "/completion") return buildCompletionPrompt(body, { extraSystem });
-  if (ep === "/chat-input-completion") return buildChatInputCompletionPrompt(body, { extraSystem });
-  if (ep === "/edit") return buildEditPrompt(body, { extraSystem });
-  if (ep === "/instruction-stream") return buildInstructionStreamPrompt(body, { extraSystem });
-  if (ep === "/smart-paste-stream") return buildSmartPasteStreamPrompt(body, { extraSystem });
-  if (ep === "/generate-commit-message-stream") return buildCommitMessageStreamPrompt(body, { extraSystem });
-  if (ep === "/generate-conversation-title") return buildConversationTitlePrompt(body, { extraSystem });
-  if (ep === "/next-edit-stream") return buildNextEditStreamPrompt(body, { extraSystem });
-  if (ep === "/next_edit_loc") return buildNextEditLocPrompt(body, { extraSystem });
-  if (ep === "/prompt-enhancer") return buildPromptEnhancerPrompt(body, { extraSystem });
-  const fallback = buildFallbackChatPrompt(body);
-  if (!extraSystem) return fallback;
-  return { system: extraSystem, messages: fallback.messages };
-}
 
 function coerceText(text) {
   return typeof text === "string" ? text : String(text ?? "");
@@ -47,7 +12,7 @@ function makeBackTextResult(text, extra) {
   return { text: coerceText(text), unknown_blob_names: [], checkpoint_not_found: false, ...(extra && typeof extra === "object" ? extra : null) };
 }
 
-function makeBackChatResult(text, { nodes, includeNodes = true } = {}) {
+function makeBackChatResult(text, { nodes, includeNodes = true, meta } = {}) {
   const out = {
     text: coerceText(text),
     unknown_blob_names: [],
@@ -55,7 +20,7 @@ function makeBackChatResult(text, { nodes, includeNodes = true } = {}) {
     workspace_file_chunks: []
   };
   if (includeNodes) out.nodes = Array.isArray(nodes) ? nodes : [];
-  return out;
+  return applyChatResponseMeta(out, meta).out;
 }
 
 function makeBackCompletionResult(text, { timeoutMs, suggestedPrefixCharCount, suggestedSuffixCharCount } = {}) {
@@ -160,7 +125,6 @@ function makeModelInfo(name) {
 }
 
 module.exports = {
-  buildMessagesForEndpoint,
   makeBackTextResult,
   makeBackChatResult,
   makeBackCompletionResult,

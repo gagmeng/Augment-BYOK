@@ -5,9 +5,10 @@
 ## 快速开始（面板）
 
 1) 运行 `BYOK: Open Config Panel`  
-2) 填 `Official`：`completionUrl`（默认官方）+ `apiToken`（可选：私有租户 / 官方上下文注入）  
+2) 填 `Official`：`completionUrl`（默认官方/可切私有租户）+ `apiToken`（可选：私有租户鉴权 / 官方上下文注入）  
 3) 至少配置 1 个 `providers[]`（`id/type/baseUrl/models/defaultModel`；Base URL 面板会按 type 自动填充默认值）  
-4) 可选：配置 `Prompts`（按 endpoint 追加 system prompt）  
+4) 可选：开启 `History Summary`（长对话自动压缩；默认关闭）  
+   - 这里指“是否生成滚动摘要”的运行时配置；构建期的 `HISTORY_SUMMARY` 节点瘦身补丁始终开启，与该开关无关  
 5) 点 `Save` 后对“后续请求”生效；要让 BYOK 接管请 `BYOK: Enable`（runtimeEnabled=true）
 
 参考示例：仓库根目录 `config.example.json`（仅示例；不会自动导入到面板）。
@@ -41,9 +42,10 @@
 注意：配置字段名严格为 **camelCase**（v1）。不再兼容历史别名/旧字段（例如 `telemetry.disabledEndpoints`、`history_summary`、`base_url` 等）。如需迁移，请参考 `config.example.json` 手动调整后再导入。
 
 - `version`：当前为 `1`
-- `official`：官方连接（仅用于 `/get-models` 合并 + 官方上下文注入）
+- `official`：官方连接（用于 `/get-models` 合并；也用于可选“官方上下文注入”；也可切私有租户）
   - `completionUrl`
   - `apiToken`
+- 官方拼接策略：**固定启用**（不再提供 `officialDelegation` 配置，也不支持请求级 `delegate_*` 覆盖字段）
 - `providers[]`：BYOK 上游列表（至少 1 个）
   - `id`：provider 标识（model id 形如 `byok:<providerId>:<modelId>`）
   - `type`：
@@ -59,8 +61,6 @@
 - `routing.rules[endpoint]`：路由规则（与内置默认规则合并）
   - `mode`: `official | byok | disabled`
   - `providerId` / `model`：仅在 `mode=byok` 时使用（留空则默认 `providers[0]` / defaultModel）
-- `prompts`：多功能提示词（追加到 system prompt；仅对 BYOK 生效）
-  - `endpointSystem[endpoint]`：按 endpoint 追加（例如 `/chat`、`/chat-stream`、`/edit`…；留空=不追加）
 - `historySummary`：历史摘要（自动压缩上下文，避免溢出；仅影响发给上游模型的内容）
   - 面板显式暴露：`enabled` + `byok model` 选择（保存时映射为 `providerId` + `model`，仅用于“生成摘要”）
   - 面板 Advanced：
@@ -104,8 +104,8 @@
 
 ## Routing / Model 选择（关键语义）
 
-- BYOK 只对 **13 个 LLM 数据面端点**提供语义实现：见 `docs/ENDPOINTS.md`
-  - 其它端点即使设置 `mode=byok`，也会回落 official（因为 runtime shim 只实现了 13 个）
+- BYOK 只对 **11 个 LLM 数据面端点**提供语义实现：见 `docs/ENDPOINTS.md`
+  - 其它端点即使设置 `mode=byok`，也会回落 official（因为 runtime shim 只实现了 11 个）
 - model id 约定：`byok:<providerId>:<modelId>`
   - `/get-models` 会把 `providers[].models` 注入到 model registry（含 feature flags），从而让上游能选择 `byok:*`
 - Model Picker（主面板模型选择）与 Endpoint Rules 的优先级（仅 BYOK 路径生效）
@@ -118,36 +118,32 @@
   - `callApi`：返回 `{}`（no-op）
   - `callApiStream`：返回空 stream
 
-## Prompts（多功能提示词）
+### 官方拼接（固定策略）
 
-目的：在不改上游请求结构的前提下，给 BYOK 的上游模型**按 endpoint**追加稳定的“长期规则/偏好”。  
-全局规则/偏好请使用 Augment 自带的 `User Guidelines / Workspace Guidelines / Rules`（BYOK 不提供全局追加，避免与 Augment 的全局设置重复/打架）。
+目标：**彻底移除手写拼接和委托开关**，统一使用上游 `callApi/callApiStream` 的请求 `body` 作为拼接结果（`source=upstream.callApiBody*`）。
 
-- 生效范围：**仅 BYOK**（runtimeEnabled=true 且 endpoint 走 byok 路由时）
-- 选择规则：
-  - `effectiveSystem = prompts.endpointSystem[endpoint]`（留空即不追加）
-  - `endpointSystem` 的 key 会被归一化为 pathname（例如 `"/chat-stream?x=1"` → `"/chat-stream"`）
-  - 注：`/get-models` 不会使用 prompt（它只是模型列表；用于注入 model picker），可忽略
-- 注入位置（保证输出约束仍在最后）：
-  - `/chat` / `/chat-stream`：追加到 chat 的 system prompt（与 `user_guidelines/workspace_guidelines/rules/agent_memories` 同级拼接）
-  - 其余 LLM 端点（如 `/edit`、`/completion`…）：追加到“BYOK purpose system prompt”中（输出约束始终最后）
+运行链路（按顺序）：
 
-面板操作：
-- 一键填充（推荐）：用推荐模板覆盖当前 `endpointSystem`（建议先导出备份；刷新可撤销未保存修改）
+1. 路由先由 `routing.rules[endpoint].mode` 决定：`official | byok | disabled`
+2. `mode=byok` 时，LLM 端点固定走官方拼接结果 + BYOK provider 执行
+3. 官方拼接失败时直接报错（不再有 `officialDelegation`/`delegate_*` 覆盖，不再有手写 builder 兜底）
+4. `mode=official` 时完全走官方链路；`mode=disabled` 走 no-op / empty stream
 
-建议写法（降低“提示词互相打架”的概率）：
-- 写“偏好/约束”，避免写“让模型忽略输出约束”（例如 `/edit` 必须只输出代码）
-- 需要按功能差异化：用 `endpointSystem`（例如 commit message 用英文、completion 更保守等）
-- 需要“全局偏好”（语言/风格/输出结构等）：用 Augment 的 `User Guidelines`，而不是 BYOK prompts
+快速验收（建议每轮改动后执行）：
 
-## 官方上下文注入（仅 `/chat`、`/chat-stream`）
+- `npm run capture:logs`（从 VS Code logs 抽取 `[Augment-BYOK]` 到 `vscode.log/webview.log`）
+- `npm run check:official-delegation -- --require-all`
 
-BYOK chat 会尝试调用官方能力，把外部上下文注入到请求中（失败会忽略，不影响 BYOK 生成）：
+### 官方上下文注入（仅 `/chat`、`/chat-stream`；fail-open）
+
+BYOK chat 在构造 provider 请求前，会**尝试**调用官方能力把外部上下文注入到请求中（失败会忽略，不影响 BYOK 主链路）：
 
 - `agents/codebase-retrieval`
 - `get-implicit-external-sources`
 - `search-external-sources`
 - `context-canvas/list`
+
+前置：需要 `official.completionUrl` + `official.apiToken`（缺省时会直接 skip）。
 
 关闭方式：请求体 `disable_retrieval=true` 或 `disableRetrieval=true`
 

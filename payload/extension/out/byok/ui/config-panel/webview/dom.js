@@ -149,32 +149,5 @@
     cfg.routing = routing;
   }
 
-  function applyPromptsEditsFromDom(cfg) {
-    const prompts = cfg.prompts && typeof cfg.prompts === "object" && !Array.isArray(cfg.prompts) ? cfg.prompts : (cfg.prompts = {});
-    const baseEndpointSystem =
-      prompts.endpointSystem && typeof prompts.endpointSystem === "object" && !Array.isArray(prompts.endpointSystem) ? prompts.endpointSystem : {};
-
-    const endpointSystem = { ...baseEndpointSystem };
-
-    const els = Array.from(document.querySelectorAll("textarea[data-prompt-ep][data-prompt-key]"));
-    for (const el of els) {
-      if (!el || typeof el.getAttribute !== "function") continue;
-      const ep = normalizeStr(el.getAttribute("data-prompt-ep"));
-      const key = normalizeStr(el.getAttribute("data-prompt-key"));
-      if (!ep || key !== "system") continue;
-      const v = normalizeStr(el.value);
-      if (v) endpointSystem[ep] = v;
-      else delete endpointSystem[ep];
-    }
-
-    prompts.endpointSystem = endpointSystem;
-    try {
-      delete prompts.activePresetId;
-      delete prompts.presets;
-      delete prompts.globalSystem;
-    } catch {}
-    cfg.prompts = prompts;
-  }
-
-  ns.__byokCfgPanelDom = { applyProvidersEditsFromDom, gatherSelfTestProviderKeysFromDom, applyRulesEditsFromDom, applyPromptsEditsFromDom };
+  ns.__byokCfgPanelDom = { applyProvidersEditsFromDom, gatherSelfTestProviderKeysFromDom, applyRulesEditsFromDom };
 })();

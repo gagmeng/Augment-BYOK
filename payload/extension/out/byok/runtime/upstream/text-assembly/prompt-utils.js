@@ -1,8 +1,47 @@
 "use strict";
 
-const { normalizeString } = require("../infra/util");
+const { normalizeString } = require("../../../infra/util");
+const { isObject } = require("../official-delegation-shared");
 
-const EMPTY_DIRECTIVES = Object.freeze({ userGuidelines: "", workspaceGuidelines: "", rulesText: "" });
+function normalizeRole(value) {
+  const role = normalizeString(value).toLowerCase();
+  if (role === "system" || role === "user" || role === "assistant") return role;
+  if (role === "developer") return "system";
+  if (role === "human") return "user";
+  if (role === "ai" || role === "model") return "assistant";
+  return "";
+}
+
+function toText(value) {
+  if (typeof value === "string") return value;
+  if (!value || typeof value !== "object") return "";
+
+  if (Array.isArray(value)) {
+    const parts = [];
+    for (const item of value) {
+      if (typeof item === "string") {
+        parts.push(item);
+        continue;
+      }
+      if (!item || typeof item !== "object") continue;
+      const type = normalizeString(item.type ?? item.kind).toLowerCase();
+      const text =
+        (typeof item.text === "string" && item.text) ||
+        (typeof item.input_text === "string" && item.input_text) ||
+        (typeof item.value === "string" && item.value) ||
+        (typeof item.content === "string" && item.content) ||
+        "";
+      if (!text) continue;
+      if (!type || type.includes("text")) parts.push(text);
+    }
+    return parts.join("\n").trim();
+  }
+
+  if (typeof value.text === "string") return value.text;
+  if (typeof value.value === "string") return value.value;
+  if (typeof value.content === "string") return value.content;
+  return "";
+}
 
 function truncate(text, maxChars) {
   const s = String(text ?? "");
@@ -44,40 +83,6 @@ function fmtJsonSection(title, value, { maxChars = 8000 } = {}) {
   return `${t} (json):\n\`\`\`json\n${j}\n\`\`\``.trim();
 }
 
-function normalizeRole(v) {
-  const r = normalizeString(v).toLowerCase();
-  if (r === "user" || r === "human") return "user";
-  if (r === "assistant" || r === "ai" || r === "model") return "assistant";
-  return "";
-}
-
-function historyToMessages(history, { maxItems = 12 } = {}) {
-  const items = Array.isArray(history) ? history.slice(-maxItems) : [];
-  const out = [];
-  for (const it of items) {
-    if (!it || typeof it !== "object") continue;
-    const role = normalizeRole(it.role || it.sender || it.type);
-    const content = normalizeString(it.text || it.content || it.message);
-    if (!role || !content) continue;
-    out.push({ role, content });
-  }
-  return out;
-}
-
-function pickText(body, keys) {
-  const b = body && typeof body === "object" ? body : {};
-  const ks = Array.isArray(keys) ? keys : [];
-  for (const k of ks) {
-    const s = normalizeString(b[k]);
-    if (s) return s;
-  }
-  return "";
-}
-
-function pickMessageText(body) {
-  return pickText(body, ["message", "prompt", "instruction"]);
-}
-
 function coerceRulesText(rules) {
   if (Array.isArray(rules)) return rules.map((x) => normalizeString(String(x))).filter(Boolean).join("\n");
   return normalizeString(rules);
@@ -91,21 +96,16 @@ function extractDirectives(body) {
   return { userGuidelines, workspaceGuidelines, rulesText };
 }
 
-function buildSystem({ purpose, directives, outputConstraints, extraSystem }) {
+function buildSystem({ purpose, directives, outputConstraints }) {
   const p = normalizeString(purpose) || "assistant";
   const { userGuidelines, workspaceGuidelines, rulesText } = directives || {};
 
-  const parts = [
-    `You are Augment-BYOK (${p}).`,
-    "Follow all provided guidelines and rules.",
-    "Prefer correctness and minimal changes."
-  ];
+  const parts = [`You are Augment-BYOK (${p}).`, "Follow all provided guidelines and rules.", "Prefer correctness and minimal changes."];
 
-  const g = [fmtSection("User Guidelines", userGuidelines), fmtSection("Workspace Guidelines", workspaceGuidelines), fmtSection("Rules", rulesText)].filter(Boolean).join("\n\n");
+  const g = [fmtSection("User Guidelines", userGuidelines), fmtSection("Workspace Guidelines", workspaceGuidelines), fmtSection("Rules", rulesText)]
+    .filter(Boolean)
+    .join("\n\n");
   if (g) parts.push("", g);
-
-  const extra = normalizeString(extraSystem);
-  if (extra) parts.push("", extra);
 
   const oc = normalizeString(outputConstraints);
   if (oc) parts.push("", oc);
@@ -113,8 +113,17 @@ function buildSystem({ purpose, directives, outputConstraints, extraSystem }) {
   return parts.join("\n").trim();
 }
 
-function buildPurposeSystem({ purpose, outputConstraints, extraSystem } = {}) {
-  return buildSystem({ purpose, directives: EMPTY_DIRECTIVES, outputConstraints, extraSystem });
+function historyToMessages(history, { maxItems = 12 } = {}) {
+  const items = Array.isArray(history) ? history.slice(-maxItems) : [];
+  const out = [];
+  for (const it of items) {
+    if (!it || typeof it !== "object") continue;
+    const role = normalizeRole(it.role ?? it.sender ?? it.type);
+    const content = normalizeString(it.text ?? it.content ?? it.message);
+    if (!role || !content) continue;
+    out.push({ role, content });
+  }
+  return out;
 }
 
 function extractCodeContext(body) {
@@ -134,15 +143,29 @@ function extractCodeContext(body) {
   return { prefix, selectedText, suffix, combined: `${prefix}${selectedText}${suffix}` };
 }
 
+function pickMessageText(body) {
+  const b = body && typeof body === "object" ? body : {};
+  return (
+    normalizeString(b.message) ||
+    normalizeString(b.prompt) ||
+    normalizeString(b.instruction) ||
+    normalizeString(b.user_prompt) ||
+    normalizeString(b.userPrompt) ||
+    normalizeString(b.query)
+  );
+}
+
 module.exports = {
+  isObject,
+  normalizeRole,
+  toText,
   truncate,
   fmtSection,
   fmtCodeSection,
   fmtJsonSection,
-  historyToMessages,
-  pickMessageText,
   extractDirectives,
   buildSystem,
-  buildPurposeSystem,
-  extractCodeContext
+  historyToMessages,
+  extractCodeContext,
+  pickMessageText
 };

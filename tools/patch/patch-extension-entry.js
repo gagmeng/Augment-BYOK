@@ -1,30 +1,23 @@
 #!/usr/bin/env node
 "use strict";
 
-const fs = require("fs");
 const path = require("path");
 
-const { insertBeforeSourceMappingURL } = require("../lib/patch");
+const { readText, writeText } = require("../lib/fs");
+const { findExportedFactoryVar, insertBeforeSourceMappingURL } = require("../lib/patch");
 
 const MARKER = "__augment_byok_bootstrap_injected_v1";
 
-function findActivateVar(src) {
-  const m = src.match(/["']?activate["']?\s*:\s*\(\)\s*=>\s*([A-Za-z0-9_$]+)/);
-  if (!m) throw new Error("failed to locate exported activate var (pattern: activate:()=>VAR)");
-  return m[1];
-}
-
 function patchExtensionEntry(filePath) {
-  if (!fs.existsSync(filePath)) throw new Error(`missing file: ${filePath}`);
-  const original = fs.readFileSync(filePath, "utf8");
+  const original = readText(filePath);
   if (original.includes(MARKER)) return { changed: false, reason: "already_patched" };
 
-  const activateVar = findActivateVar(original);
+  const activateVar = findExportedFactoryVar(original, "activate");
   const injection =
     `\n;require("./byok/runtime/bootstrap").install({vscode:require("vscode"),getActivate:()=>${activateVar},setActivate:e=>{${activateVar}=e}})\n` +
     `;/*${MARKER}*/\n`;
   const next = insertBeforeSourceMappingURL(original, injection);
-  fs.writeFileSync(filePath, next, "utf8");
+  writeText(filePath, next);
   return { changed: true, reason: "patched", activateVar };
 }
 

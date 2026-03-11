@@ -49,20 +49,9 @@ function coerceOpenAiStrictJsonSchema(schema, depth) {
     out.additionalProperties = false;
     const props = out.properties && typeof out.properties === "object" && !Array.isArray(out.properties) ? out.properties : {};
     out.properties = props;
-    if (Array.isArray(out.required)) {
-      const cleaned = [];
-      for (const k of out.required) {
-        const key = normalizeString(k);
-        if (!key) continue;
-        if (!Object.prototype.hasOwnProperty.call(props, key)) continue;
-        if (cleaned.includes(key)) continue;
-        cleaned.push(key);
-      }
-      out.required = cleaned;
-    } else {
-      // 兼容：当 schema 未给 required 时，延续旧行为（默认全 required）。
-      out.required = Object.keys(props);
-    }
+    // OpenAI Responses strict 工具 schema 要求 required 覆盖 properties 全量 keys。
+    // 这里统一强制为“全 required”，避免上游 400 invalid_function_parameters。
+    out.required = Object.keys(props);
   }
 
   if (out.properties && typeof out.properties === "object" && !Array.isArray(out.properties)) {

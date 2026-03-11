@@ -88,3 +88,27 @@ test("decideRoute: empty routing.rules falls back to built-in defaults", () => {
   assert.equal(r.mode, "byok");
   assert.equal(r.endpoint, "/get-models");
 });
+
+test("decideRoute: non-chat endpoint uses byok when rule is byok", () => {
+  const cfg = defaultConfig();
+  const r = decideRoute({ cfg, endpoint: "/completion", body: {}, runtimeEnabled: true });
+  assert.equal(r.mode, "byok");
+  assert.equal(r.endpoint, "/completion");
+});
+
+test("decideRoute: route object no longer carries delegation meta", () => {
+  const cfg = defaultConfig();
+  const r = decideRoute({ cfg, endpoint: "/chat-stream", body: {}, runtimeEnabled: true });
+  assert.equal(r.mode, "byok");
+  assert.equal(Object.prototype.hasOwnProperty.call(r, "delegateOfficialAssembler"), false);
+  assert.equal(Object.prototype.hasOwnProperty.call(r, "delegateExecutionOwner"), false);
+});
+
+test("decideRoute: missing configured provider falls back to official", () => {
+  const cfg = defaultConfig();
+  cfg.routing.rules["/completion"] = { mode: "byok", providerId: "missing-provider", model: "m1" };
+  const r = decideRoute({ cfg, endpoint: "/completion", body: {}, runtimeEnabled: true });
+  assert.equal(r.mode, "official");
+  assert.equal(r.reason, "provider_missing");
+  assert.equal(r.providerId, "missing-provider");
+});

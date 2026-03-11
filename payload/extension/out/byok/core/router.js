@@ -70,9 +70,26 @@ function decideRoute({ cfg, endpoint, body, runtimeEnabled }) {
   if (mode !== "byok" && !parsed) return { mode: "official", endpoint: ep, reason: "unknown_mode" };
   const providerId = normalizeString(parsed?.providerId) || normalizeString(rule?.providerId) || "";
   const provider = pickProvider(cfg, providerId);
+  if (!provider) {
+    return {
+      mode: "official",
+      endpoint: ep,
+      reason: "provider_missing",
+      providerId,
+      requestedModel
+    };
+  }
   const parsedModel = parsed && normalizeString(parsed.providerId) === normalizeString(provider?.id) ? parsed.modelId : "";
   const model = normalizeString(parsedModel) || normalizeString(rule?.model) || normalizeString(provider?.defaultModel) || "";
-  return { mode: "byok", endpoint: ep, reason: parsed && mode !== "byok" ? "model_override" : "byok", provider, model, requestedModel };
+  return {
+    mode: "byok",
+    endpoint: ep,
+    reason: parsed && mode !== "byok" ? "model_override" : "byok",
+    providerId,
+    provider,
+    model,
+    requestedModel
+  };
 }
 
 module.exports = { decideRoute };

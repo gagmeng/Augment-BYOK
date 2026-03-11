@@ -1,17 +1,16 @@
 #!/usr/bin/env node
 "use strict";
 
-const fs = require("fs");
 const path = require("path");
 
-const { ensureMarker, replaceOnceRegex } = require("../lib/patch");
+const { replaceOnceRegex } = require("../lib/patch");
+const { loadPatchText, savePatchText } = require("./patch-target");
 
 const MARKER = "__augment_byok_memories_upper_bound_size_patched_v1";
 
 function patchMemoriesUpperBoundSize(filePath, { defaultUpperBoundSize = 10000 } = {}) {
-  if (!fs.existsSync(filePath)) throw new Error(`missing file: ${filePath}`);
-  const original = fs.readFileSync(filePath, "utf8");
-  if (original.includes(MARKER)) return { changed: false, reason: "already_patched" };
+  const { original, alreadyPatched } = loadPatchText(filePath, { marker: MARKER });
+  if (alreadyPatched) return { changed: false, reason: "already_patched" };
 
   const upper = Number.isFinite(Number(defaultUpperBoundSize)) && Number(defaultUpperBoundSize) > 0 ? Math.floor(Number(defaultUpperBoundSize)) : 10000;
 
@@ -34,8 +33,7 @@ function patchMemoriesUpperBoundSize(filePath, { defaultUpperBoundSize = 10000 }
     "memories upper_bound_size default"
   );
 
-  next = ensureMarker(next, MARKER);
-  fs.writeFileSync(filePath, next, "utf8");
+  savePatchText(filePath, next, { marker: MARKER });
   return { changed: true, reason: "patched", defaultUpperBoundSize: upper };
 }
 

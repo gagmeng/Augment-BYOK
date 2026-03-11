@@ -95,19 +95,36 @@ async function hydrateFileIdNode(assetManager, node, { maxChars }) {
   }
   const arr = bytesToUint8Array(bytes);
   if (!arr || !arr.length) {
-    return { type: REQUEST_NODE_TEXT, id: Number(n.id) || 0, content: "", text_node: { content: buildAttachmentText({ fileName, fileId, contentText: "", truncated: false }) } };
+    return {
+      type: REQUEST_NODE_TEXT,
+      id: Number(n.id) || 0,
+      content: "",
+      text_node: { content: buildAttachmentText({ fileName, fileId, contentText: "", truncated: false }) }
+    };
   }
 
   const max = Number.isFinite(Number(maxChars)) && Number(maxChars) > 0 ? Math.floor(Number(maxChars)) : 20000;
   let txt = bytesToUtf8(arr);
-  if (!txt) return { type: REQUEST_NODE_TEXT, id: Number(n.id) || 0, content: "", text_node: { content: buildAttachmentText({ fileName, fileId, contentText: "", truncated: false }) } };
+  if (!txt) {
+    return {
+      type: REQUEST_NODE_TEXT,
+      id: Number(n.id) || 0,
+      content: "",
+      text_node: { content: buildAttachmentText({ fileName, fileId, contentText: "", truncated: false }) }
+    };
+  }
 
   let truncated = false;
   if (txt.length > max) {
     txt = txt.slice(0, max);
     truncated = true;
   }
-  return { type: REQUEST_NODE_TEXT, id: Number(n.id) || 0, content: "", text_node: { content: buildAttachmentText({ fileName, fileId, contentText: txt, truncated }) } };
+  return {
+    type: REQUEST_NODE_TEXT,
+    id: Number(n.id) || 0,
+    content: "",
+    text_node: { content: buildAttachmentText({ fileName, fileId, contentText: txt, truncated }) }
+  };
 }
 
 async function hydrateImageIdNode(assetManager, node) {
@@ -222,3 +239,4 @@ async function maybeHydrateAssetNodesFromUpstream(req, { timeoutMs, abortSignal 
 }
 
 module.exports = { maybeHydrateAssetNodesFromUpstream };
+

@@ -1,17 +1,21 @@
 #!/usr/bin/env node
 "use strict";
 
-const fs = require("fs");
 const path = require("path");
 
-const { ensureMarker, replaceOnceRegex } = require("../lib/patch");
+const { replaceOnceRegex } = require("../lib/patch");
+const { loadPatchText, savePatchText } = require("./patch-target");
+const { buildTaskFailuresSummarySnippet } = require("./tasklist-common");
 
 const MARKER = "__augment_byok_tasklist_add_tasks_errors_patched_v1";
 
+function escapeRegExp(str) {
+  return String(str || "").replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
 function patchTasklistAddTasksErrors(filePath) {
-  if (!fs.existsSync(filePath)) throw new Error(`missing file: ${filePath}`);
-  const original = fs.readFileSync(filePath, "utf8");
-  if (original.includes(MARKER)) return { changed: false, reason: "already_patched" };
+  const { original, alreadyPatched } = loadPatchText(filePath, { marker: MARKER });
+  if (alreadyPatched) return { changed: false, reason: "already_patched" };
 
   let next = original;
 
@@ -20,40 +24,50 @@ function patchTasklistAddTasksErrors(filePath) {
   // Patch: if any tasks fail, append failure summary; if all fail, return isError=true with details.
   next = replaceOnceRegex(
     next,
-    /async handleBatchCreation\(([A-Za-z_$][\w$]*),([A-Za-z_$][\w$]*)\)\{[\s\S]*?let\s+([A-Za-z_$][\w$]*)=\[\];for\(let[\s\S]*?let\s+([A-Za-z_$][\w$]*)=([A-Za-z_$][\w$]*)\.formatBulkUpdateResponse\(([A-Za-z_$][\w$]*)\(([A-Za-z_$][\w$]*),([A-Za-z_$][\w$]*)\)\);return\{\.\.\.([A-Za-z_$][\w$]*)\(\4\),plan:\8\}\}/g,
+    /async handleBatchCreation\(([A-Za-z_$][\w$]*),([A-Za-z_$][\w$]*)\)\{[\s\S]*?let\s+([A-Za-z_$][\w$]*)\s*=\s*([A-Za-z_$][\w$]*)\.formatBulkUpdateResponse\(([A-Za-z_$][\w$]*)\(([A-Za-z_$][\w$]*),([A-Za-z_$][\w$]*)\)\)\s*;[\s\S]*?return\s*\{\.\.\.([A-Za-z_$][\w$]*)\(\3\),plan:\7\}\s*\}/g,
     (m) => {
-      const resultsVar = String(m[3] || "");
-      const textVar = String(m[4] || "");
-      const classVar = String(m[5] || "");
-      const diffFn = String(m[6] || "");
-      const beforeVar = String(m[7] || "");
-      const afterVar = String(m[8] || "");
-      const formatterFn = String(m[9] || "");
-      if (!resultsVar || !textVar || !classVar || !diffFn || !beforeVar || !afterVar || !formatterFn) throw new Error("tasklist add_tasks errors: capture missing");
+      const textVar = String(m[3] || "");
+      const formatterVar = String(m[4] || "");
+      const diffFnVar = String(m[5] || "");
+      const beforeVar = String(m[6] || "");
+      const afterVar = String(m[7] || "");
+      const okFnVar = String(m[8] || "");
+      if (!textVar || !formatterVar || !diffFnVar || !beforeVar || !afterVar || !okFnVar) {
+        throw new Error("tasklist add_tasks errors: capture missing");
+      }
 
-      const errFnMatch = m[0].match(/return ([A-Za-z_$][\w$]*)\("No root task found/);
-      const errFn = errFnMatch ? errFnMatch[1] : "et";
+      const resultsCapture = m[0].match(/let\s+([A-Za-z_$][\w$]*)\s*=\s*\[\]\s*;\s*for\(let/);
+      const resultsVar = String(resultsCapture?.[1] || "");
+      if (!resultsVar) throw new Error("tasklist add_tasks errors: results capture missing");
 
-      const oldTail = `let ${textVar}=${classVar}.formatBulkUpdateResponse(${diffFn}(${beforeVar},${afterVar}));return{...${formatterFn}(${textVar}),plan:${afterVar}}`;
-      const insertion =
-        `let __byok_failed=${resultsVar}.filter(t=>t&&t.success===!1);` +
-        `if(__byok_failed.length){` +
-        `let __byok_lines=__byok_failed.slice(0,10).map(t=>"-  "+String(t.taskName)+": "+String(t.error||"unknown")).join("\\n");` +
-        `let __byok_more=__byok_failed.length>10?"\\n… ("+String(__byok_failed.length-10)+" more)":"";\n` +
-        `let __byok_msg="\\n\\nTask creation failures ("+String(__byok_failed.length)+"/"+String(${resultsVar}.length)+"):\\n"+__byok_lines+__byok_more;` +
-        `if(__byok_failed.length===${resultsVar}.length)return{...${errFn}("Failed to add task(s)."+__byok_msg),plan:${afterVar}};` +
-        `${textVar}+=__byok_msg;` +
-        `}`;
+      const errFnCapture = m[0].match(/return\s+([A-Za-z_$][\w$]*)\("No root task found\."\);/);
+      const errFnVar = String(errFnCapture?.[1] || "");
+      if (!errFnVar) throw new Error("tasklist add_tasks errors: error fn capture missing");
 
-      const newTail = `let ${textVar}=${classVar}.formatBulkUpdateResponse(${diffFn}(${beforeVar},${afterVar}));${insertion}return{...${formatterFn}(${textVar}),plan:${afterVar}}`;
-      if (!m[0].includes(oldTail)) throw new Error("tasklist add_tasks errors: tail not found (upstream may have changed)");
-      return m[0].replace(oldTail, newTail);
+      const oldTailRe = new RegExp(
+        `let\\s+${escapeRegExp(textVar)}\\s*=\\s*${escapeRegExp(formatterVar)}\\.formatBulkUpdateResponse\\(${escapeRegExp(diffFnVar)}\\(${escapeRegExp(
+          beforeVar
+        )},${escapeRegExp(afterVar)}\\)\\)\\s*;\\s*return\\s*\\{\\.\\.\\.${escapeRegExp(okFnVar)}\\(${escapeRegExp(textVar)}\\),plan:${escapeRegExp(
+          afterVar
+        )}\\}`,
+        "g"
+      );
+      const insertion = buildTaskFailuresSummarySnippet({
+        resultsVar,
+        errorFnVar: errFnVar,
+        textVar,
+        planVar: afterVar
+      });
+
+      const newTail = `let ${textVar}=${formatterVar}.formatBulkUpdateResponse(${diffFnVar}(${beforeVar},${afterVar}));${insertion}return{...${okFnVar}(${textVar}),plan:${afterVar}}`;
+      if (!oldTailRe.test(m[0])) throw new Error("tasklist add_tasks errors: tail not found (upstream may have changed)");
+      oldTailRe.lastIndex = 0;
+      return m[0].replace(oldTailRe, newTail);
     },
     "tasklist add_tasks errors: handleBatchCreation"
   );
 
-  next = ensureMarker(next, MARKER);
-  fs.writeFileSync(filePath, next, "utf8");
+  savePatchText(filePath, next, { marker: MARKER });
   return { changed: true, reason: "patched" };
 }
 

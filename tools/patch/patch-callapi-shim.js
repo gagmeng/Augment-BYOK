@@ -1,29 +1,16 @@
 #!/usr/bin/env node
 "use strict";
 
-const fs = require("fs");
 const path = require("path");
 
-const { ensureMarker, findMatchIndexes } = require("../lib/patch");
+const { injectIntoAsyncMethods } = require("../lib/patch");
+const { loadPatchText, savePatchText } = require("./patch-target");
 
 const MARKER = "__augment_byok_callapi_shim_patched_v1";
 
-function injectIntoAsyncMethods(src, methodName, injection) {
-  const indexes = findMatchIndexes(src, new RegExp(`async\\s+${methodName}\\s*\\(`, "g"), methodName);
-  let out = src;
-  for (let i = indexes.length - 1; i >= 0; i--) {
-    const idx = indexes[i];
-    const openBrace = out.indexOf("{", idx);
-    if (openBrace < 0) throw new Error(`${methodName} patch: failed to locate method body opening brace`);
-    out = out.slice(0, openBrace + 1) + injection + out.slice(openBrace + 1);
-  }
-  return { out, count: indexes.length };
-}
-
 function patchCallApiShim(filePath) {
-  if (!fs.existsSync(filePath)) throw new Error(`missing file: ${filePath}`);
-  const original = fs.readFileSync(filePath, "utf8");
-  if (original.includes(MARKER)) return { changed: false, reason: "already_patched" };
+  const { original, alreadyPatched } = loadPatchText(filePath, { marker: MARKER });
+  if (alreadyPatched) return { changed: false, reason: "already_patched" };
 
   const callApiShimPath = "./byok/runtime/shim/call-api";
   const callApiStreamShimPath = "./byok/runtime/shim/call-api-stream";
@@ -37,10 +24,11 @@ function patchCallApiShim(filePath) {
 
   function makeInjection({ shimPath, exportName }) {
     return (
+      `const __byok_host=this;` +
       `const __byok_ep=typeof arguments[2]==="string"?arguments[2]:"";` +
       sanitizeBody +
       `const __byok_url=typeof arguments[5]==="string"?arguments[5]:(arguments[5]&&typeof arguments[5].toString==="function"?arguments[5].toString():"");` +
-      `const __byok_res=await require("${shimPath}").${exportName}({endpoint:__byok_ep,body:arguments[3],transform:arguments[4],timeoutMs:arguments[6],abortSignal:arguments[8],upstreamApiToken:(arguments[10]??((arguments[1]||{}).apiToken)),upstreamCompletionURL:__byok_url});` +
+      `const __byok_res=await require("${shimPath}").${exportName}({endpoint:__byok_ep,body:arguments[3],transform:arguments[4],timeoutMs:arguments[6],abortSignal:arguments[8],upstreamApiToken:(arguments[10]??((arguments[1]||{}).apiToken)),upstreamCompletionURL:__byok_url,upstreamCallHost:__byok_host});` +
       `if(__byok_res!==void 0)return __byok_res;`
     );
   }
@@ -54,8 +42,7 @@ function patchCallApiShim(filePath) {
   const streamRes = injectIntoAsyncMethods(next, "callApiStream", streamInjection);
   next = streamRes.out;
 
-  next = ensureMarker(next, MARKER);
-  fs.writeFileSync(filePath, next, "utf8");
+  savePatchText(filePath, next, { marker: MARKER });
   return { changed: true, reason: "patched", callApiPatched: apiRes.count, callApiStreamPatched: streamRes.count };
 }
 

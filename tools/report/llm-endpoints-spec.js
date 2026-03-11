@@ -103,7 +103,7 @@ const LLM_ENDPOINT_SPECS = [
     inputKeys: ["diff", "changed_file_stats?", "relevant_commit_messages?", "example_commit_messages?"],
     outputKeys: ["text (delta)", "unknown_blob_names[]", "checkpoint_not_found", "workspace_file_chunks[]", "nodes[]"],
     byokImpl: "commit msg stream -> BackChatResult"
-  }
+  },
 ];
 
 module.exports = { LLM_ENDPOINT_SPECS };

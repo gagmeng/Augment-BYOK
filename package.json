@@ -16,6 +16,8 @@
     "check:provider-dispatch": "node tools/check/provider-type-dispatch.js",
     "check:payload-syntax": "node tools/check/node-check-js.js",
     "check:codestyle": "node tools/check/codestyle.js",
+    "capture:logs": "node tools/check/capture-vscode-logs.js",
+    "check:official-delegation": "node tools/check/official-delegation-audit.js --strict",
     "check:contracts": "node tools/check/run-contracts-cached-upstream.js",
     "test": "node --test test/*.test.js",
     "upstream:analyze": "node tools/build/upstream-analyze.js",

@@ -117,13 +117,5 @@
     "cacheTtlMs": 0,
     "maxSummarizationInputChars": 250000,
     "prompt": ""
-  },
-  "prompts": {
-    "endpointSystem": {
-      "/chat": "默认使用简体中文回答（除非用户明确要求英文）。\\n优先级：正确性 > 最小改动 > 一致性。",
-      "/edit": "如果输出是代码：只输出替换后的代码，不要解释。",
-      "/generate-commit-message-stream": "Output one concise English commit subject line (no quotes, no trailing period).",
-      "/next_edit_loc": "Return STRICT JSON only (no markdown, no comments, no trailing commas)."
-    }
   }
 }

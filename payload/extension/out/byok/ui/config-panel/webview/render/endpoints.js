@@ -57,7 +57,7 @@
 
             const providerIdUnknown = Boolean(providerId) && !providerMap[providerId];
             const providerSelectCls = providerIdUnknown ? "input--error" : "";
-            const providerSelectTitle = providerIdUnknown ? `未知 providerId：${providerId}（不在 Providers 列表中）` : "Only used when mode=byok";
+            const providerSelectTitle = providerIdUnknown ? `未知 providerId：${providerId}（不在 Providers 列表中；运行时会回退 official）` : "Only used when mode=byok";
 
             const modelUnknownForProvider =
               Boolean(model) && Boolean(providerId) && !providerIdUnknown && models.length > 0 && !models.includes(model);

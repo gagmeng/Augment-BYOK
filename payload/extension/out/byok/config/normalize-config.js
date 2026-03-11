@@ -65,25 +65,6 @@ function normalizeConfig(raw) {
     if (apiToken) out.official.apiToken = apiToken;
   }
 
-  const prompts = asObject(raw.prompts);
-  if (prompts) {
-    out.prompts = out.prompts && typeof out.prompts === "object" && !Array.isArray(out.prompts) ? out.prompts : {};
-    out.prompts.endpointSystem =
-      out.prompts.endpointSystem && typeof out.prompts.endpointSystem === "object" && !Array.isArray(out.prompts.endpointSystem)
-        ? out.prompts.endpointSystem
-        : {};
-
-    const endpointSystem = asObject(prompts.endpointSystem);
-    if (endpointSystem) {
-      for (const [k, v] of Object.entries(endpointSystem)) {
-        const ep = normalizeEndpoint(k);
-        const text = normalizeString(v);
-        if (!ep || !text) continue;
-        out.prompts.endpointSystem[ep] = text;
-      }
-    }
-  }
-
   const historySummary = asObject(raw.historySummary);
   if (historySummary) {
     const hs = out.historySummary;

@@ -1,11 +1,12 @@
 "use strict";
 
-const { normalizeBlobsMap, coerceBlobText, pickBestBlobName, listBlobKeys } = require("../core/blob-utils");
-const { extractFirstDiagnosticPath, extractFirstDiagnosticLine } = require("../core/diagnostics-utils");
-const { pickPath, pickInstruction, pickNumResults, pickBlobNameHint } = require("../core/next-edit/fields");
-const { clampInt } = require("../core/number-utils");
-const { normalizeNewlines } = require("../infra/text");
-const { fmtSection, fmtCodeSection, fmtJsonSection, extractDirectives, buildSystem } = require("./common");
+const { normalizeEndpoint, normalizeString } = require("../../../infra/util");
+const { normalizeBlobsMap, coerceBlobText, pickBestBlobName, listBlobKeys } = require("../../../core/blob-utils");
+const { extractFirstDiagnosticPath, extractFirstDiagnosticLine } = require("../../../core/diagnostics-utils");
+const { pickPath, pickInstruction, pickNumResults, pickBlobNameHint } = require("../../../core/next-edit/fields");
+const { clampInt } = require("../../../core/number-utils");
+const { normalizeNewlines } = require("../../../infra/text");
+const { fmtSection, fmtCodeSection, fmtJsonSection, extractDirectives, buildSystem } = require("./prompt-utils");
 
 function formatLineWindow(text, { focusLine = 0, radius = 40, maxChars = 12000 } = {}) {
   const src = typeof text === "string" ? text : "";
@@ -27,8 +28,11 @@ function formatLineWindow(text, { focusLine = 0, radius = 40, maxChars = 12000 }
   return joined.slice(0, Math.max(0, maxChars - 14)) + "\n…(truncated)";
 }
 
-function buildNextEditLocPrompt(body, { extraSystem = "" } = {}) {
-  const b = body && typeof body === "object" ? body : {};
+function tryFromEndpointFieldsNextEditLoc(endpoint, rawBody) {
+  const ep = normalizeEndpoint(endpoint);
+  if (ep !== "/next_edit_loc") return null;
+
+  const b = rawBody && typeof rawBody === "object" ? rawBody : {};
   const directives = extractDirectives(b);
 
   const instruction = pickInstruction(b) || "Propose where the next edit should occur.";
@@ -50,10 +54,11 @@ function buildNextEditLocPrompt(body, { extraSystem = "" } = {}) {
   if (!primaryBlobName && blobKeys.length) primaryBlobName = blobKeys[0];
   const primaryBlobText = primaryBlobName && blobs ? coerceBlobText(blobs[primaryBlobName]) : "";
 
+  if (!normalizeString(instruction) && !pathHint && diagnostics == null && !blobKeys.length) return null;
+
   const system = buildSystem({
     purpose: "next_edit_loc",
     directives,
-    extraSystem,
     outputConstraints:
       "Return ONLY valid JSON (no markdown).\n" +
       "Schema:\n" +
@@ -86,8 +91,12 @@ function buildNextEditLocPrompt(body, { extraSystem = "" } = {}) {
     if (snippet) parts.push(fmtCodeSection(`File Snippet (line-numbered): ${primaryBlobName || path || "unknown"}`, snippet));
   }
 
-  const user = parts.filter(Boolean).join("\n\n").trim() || "Return candidate edit locations as JSON.";
-  return { system, messages: [{ role: "user", content: user }] };
+  const user = parts.filter(Boolean).join("\n\n").trim();
+  if (!user) return null;
+  return { ok: true, system, messages: [{ role: "user", content: user }], source: "byok.endpointFields.next_edit_loc" };
 }
 
-module.exports = { buildNextEditLocPrompt };
+module.exports = {
+  tryFromEndpointFieldsNextEditLoc
+};
+

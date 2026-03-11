@@ -2,7 +2,7 @@
   "use strict";
 
   const ns = (window.__byokCfgPanel = window.__byokCfgPanel || {});
-  const { normalizeStr, uniq, escapeHtml, optionHtml } = ns;
+  const { normalizeStr, uniq, escapeHtml } = ns;
 
   function computeOfficialTestUi(officialTest) {
     const ot = officialTest && typeof officialTest === "object" ? officialTest : {};
@@ -188,15 +188,17 @@
     const tokenBadge = tokenSet
       ? `<span class="status-badge status-badge--success">token: set</span>`
       : `<span class="status-badge status-badge--warning">token: empty (optional)</span>`;
+    const officialAssemblerBadge = `<span class="status-badge status-badge--success">assembler: official</span>`;
 
     const official = `
 	      <section class="settings-panel">
-	        <header class="settings-panel__header">
-	          <div class="flex-row flex-wrap">
-	            <span>Official</span>
-	            ${completionUrlBadge}
-	            ${tokenBadge}
-	          </div>
+		        <header class="settings-panel__header">
+		          <div class="flex-row flex-wrap">
+		            <span>Official</span>
+		            ${completionUrlBadge}
+		            ${tokenBadge}
+		            ${officialAssemblerBadge}
+		          </div>
 	          <div class="flex-row" style="min-width:0;">
 	            <button class="btn btn--small" data-action="testOfficialGetModels" ${otRunning ? "disabled" : ""} title="/get-models">测试连接</button>
 	            ${otBadge}
@@ -208,23 +210,23 @@
 	            <div class="form-group">
 	              <label class="form-label" for="officialCompletionUrl">Completion URL</label>
 	              <input type="url" id="officialCompletionUrl" value="${escapeHtml(off.completionUrl ?? "")}" placeholder="https://&lt;tenant&gt;.augmentcode.com/" />
-	              <div class="text-muted text-xs">默认官方；私有租户填你的域名。用于官方上下文注入 + <span class="text-mono">/get-models</span> 合并。</div>
+	              <div class="text-muted text-xs">默认官方；私有租户填你的域名。用于 <span class="text-mono">/get-models</span> 合并（以及官方链路请求）。</div>
 	            </div>
-	            <div class="form-group">
-	              <div class="flex-between flex-row">
-	                <label class="form-label" for="officialApiToken">API Token</label>
-	                ${tokenBadge}
-	              </div>
+		            <div class="form-group">
+		              <div class="flex-between flex-row">
+		                <label class="form-label" for="officialApiToken">API Token</label>
+		                ${tokenBadge}
+		              </div>
 	              <div class="flex-row">
 	                <input type="password" id="officialApiToken" value="" placeholder="${off.apiToken ? "(set)" : "(empty)"}" />
 	                <button class="btn btn--icon btn--danger" data-action="clearOfficialToken" title="清空 Token">✕</button>
-	              </div>
-	              <div class="text-muted text-xs">可选：私有租户/需要官方注入才需配置。留空=不改；点击 ✕=清空（保存后生效）。</div>
-	            </div>
-	          </div>
-	        </div>
-	      </section>
-	    `;
+		              </div>
+		              <div class="text-muted text-xs">可选：私有租户/鉴权需要时配置。留空=不改；点击 ✕=清空（保存后生效）。</div>
+		            </div>
+		          </div>
+		        </div>
+		      </section>
+		    `;
 
     const providersHtml =
       typeof ns.renderProvidersPanel === "function"
@@ -234,12 +236,7 @@
     const historySummaryHtml =
       typeof ns.renderHistorySummaryPanel === "function"
         ? ns.renderHistorySummaryPanel({ cfg: c, providers })
-        : `<div class="text-muted text-xs">history summary renderer missing</div>`;
-
-    const promptsHtml =
-      typeof ns.renderPromptsPanel === "function"
-        ? ns.renderPromptsPanel({ cfg: c })
-        : `<div class="text-muted text-xs">prompts renderer missing</div>`;
+        : `<div class="text-muted text-xs">historySummary renderer missing</div>`;
 
     const endpointRules =
       typeof ns.renderEndpointRulesPanel === "function"
@@ -302,7 +299,6 @@
 	        ${official}
 	        ${providersHtml}
 	        ${historySummaryHtml}
-	        ${promptsHtml}
 	        ${endpointRules}
 	        ${selfTestHtml}
 	      </div>

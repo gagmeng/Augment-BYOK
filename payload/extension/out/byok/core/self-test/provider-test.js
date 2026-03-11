@@ -4,7 +4,6 @@ const { debug } = require("../../infra/log");
 const { nowMs } = require("../../infra/trace");
 const { normalizeString, randomId } = require("../../infra/util");
 const { fetchProviderModels } = require("../../providers/models");
-const { buildMessagesForEndpoint } = require("../protocol");
 const { STOP_REASON_TOOL_USE_REQUESTED } = require("../augment-protocol");
 const { summarizeToolDefs } = require("./tool-defs");
 const { hasAuthHeader, providerLabel, formatMs, formatMaybeInt, withTimed } = require("./util");
@@ -20,7 +19,7 @@ const {
 } = require("./provider-io");
 const { realToolsToolRoundtripByProvider } = require("./real-tools-roundtrip");
 
-async function selfTestProvider({ cfg, provider, timeoutMs, abortSignal, log, capturedToolDefinitions }) {
+async function selfTestProvider({ cfg: _cfg, provider, timeoutMs, abortSignal, log, capturedToolDefinitions }) {
   const t0 = nowMs();
   const pid = normalizeString(provider?.id) || "";
   const type = normalizeString(provider?.type);
@@ -113,48 +112,6 @@ async function selfTestProvider({ cfg, provider, timeoutMs, abortSignal, log, ca
       record({ name: "streamText", ok: true, ms: streamRes.ms, detail: `len=${String(streamRes.res).length}` });
     } else {
       record({ name: "streamText", ok: false, ms: streamRes.ms, detail: streamRes.ok ? "empty output" : streamRes.error });
-    }
-
-    // /next-edit-stream prompt builder smoke test（走非流式 completeText）
-    const nextEditRes = await withTimed(async () => {
-      const body = {
-        instruction: "Replace foo with bar in the selected range.",
-        path: "selftest.js",
-        lang: "javascript",
-        prefix: "const x = '",
-        selected_text: "foo",
-        suffix: "';\nconsole.log(x);\n"
-      };
-      const { system, messages } = buildMessagesForEndpoint("/next-edit-stream", body, cfg);
-      return await completeTextByProvider({ provider, model, system, messages, timeoutMs, abortSignal });
-    });
-    if (nextEditRes.ok && normalizeString(nextEditRes.res)) {
-      record({ name: "nextEdit", ok: true, ms: nextEditRes.ms, detail: `len=${String(nextEditRes.res).length}` });
-    } else {
-      record({ name: "nextEdit", ok: false, ms: nextEditRes.ms, detail: nextEditRes.ok ? "empty output" : nextEditRes.error });
-    }
-
-    // /next_edit_loc prompt builder smoke test（走非流式 completeText）
-    const nextEditLocRes = await withTimed(async () => {
-      const body = {
-        instruction: "Find the most relevant place to apply the next edit.",
-        path: "selftest.js",
-        num_results: 2,
-        diagnostics: [
-          {
-            path: "selftest.js",
-            range: { start: { line: 0 }, end: { line: 0 } },
-            message: "dummy diagnostic for smoke test"
-          }
-        ]
-      };
-      const { system, messages } = buildMessagesForEndpoint("/next_edit_loc", body, cfg);
-      return await completeTextByProvider({ provider, model, system, messages, timeoutMs, abortSignal });
-    });
-    if (nextEditLocRes.ok && normalizeString(nextEditLocRes.res)) {
-      record({ name: "nextEditLoc", ok: true, ms: nextEditLocRes.ms, detail: `len=${String(nextEditLocRes.res).length}` });
-    } else {
-      record({ name: "nextEditLoc", ok: false, ms: nextEditLocRes.ms, detail: nextEditLocRes.ok ? "empty output" : nextEditLocRes.error });
     }
 
     // chat-stream（基础）

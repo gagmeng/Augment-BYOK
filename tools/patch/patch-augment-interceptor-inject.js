@@ -1,27 +1,23 @@
 #!/usr/bin/env node
 "use strict";
 
-const fs = require("fs");
 const path = require("path");
 
-const { ensureMarker } = require("../lib/patch");
+const { readText, writeText } = require("../lib/fs");
+const { assertContainsAll, ensureMarker } = require("../lib/patch");
 
 const MARKER = "__augment_byok_augment_interceptor_injected_v1";
 
 function patchAugmentInterceptorInject(filePath, { injectPath }) {
-  if (!fs.existsSync(filePath)) throw new Error(`missing file: ${filePath}`);
-  if (!fs.existsSync(injectPath)) throw new Error(`missing inject source: ${injectPath}`);
-
-  const original = fs.readFileSync(filePath, "utf8");
+  const original = readText(filePath);
   if (original.includes(MARKER)) return { changed: false, reason: "already_patched" };
 
-  const code = fs.readFileSync(injectPath, "utf8");
-  if (!code.includes("Augment Interceptor Injection Start")) throw new Error("inject-code unexpected: missing header marker");
-  if (!code.includes("Augment Interceptor Injection End")) throw new Error("inject-code unexpected: missing footer marker");
+  const code = readText(injectPath);
+  assertContainsAll(code, ["Augment Interceptor Injection Start", "Augment Interceptor Injection End"], "inject-code unexpected");
 
   let next = `${code}\n;\n${original}`;
   next = ensureMarker(next, MARKER);
-  fs.writeFileSync(filePath, next, "utf8");
+  writeText(filePath, next);
   return { changed: true, reason: "patched" };
 }
 
@@ -37,4 +33,3 @@ if (require.main === module) {
   const injectPath = path.join(repoRoot, "vendor", "augment-interceptor", "inject-code.augment-interceptor.v1.2.txt");
   patchAugmentInterceptorInject(filePath, { injectPath });
 }
-

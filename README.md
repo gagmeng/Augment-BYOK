@@ -1,22 +1,22 @@
 # Augment-BYOK（请尽快 PR 合并，避免跟不上本仓库）
 
-单一 VSIX：把 Augment 的 **13 个 LLM 数据面端点**按路由转到 BYOK（支持 Streaming + tool use），其它端点保持官方行为；支持运行时一键回滚（无需 Rust/外部服务）。
+单一 VSIX：把 Augment 的 **11 个 LLM 数据面端点**按路由转到 BYOK（支持 Streaming + tool use），其它端点保持官方行为；支持运行时一键回滚（无需 Rust/外部服务）。
 
 ## 安装（推荐：Releases）
 
-- GitHub Releases（tag：`rolling`）下载 `augment.vscode-augment.*.byok.vsix`
+- GitHub Releases（tag：`rolling`）下载 `augment.vscode-augment.*-byok.*.vsix`
 - VS Code → Extensions → `...` → `Install from VSIX...` → Reload Window
 
 ## 快速配置（面板）
 
 1. 运行 `BYOK: Open Config Panel`
 2. 至少配置 1 个 `providers[]` → `Save`（Base URL 会按 type 自动填充默认值）
-3. 运行 `BYOK: Enable`（`runtimeEnabled=true` 才会接管 13 个端点）
+3. 运行 `BYOK: Enable`（`runtimeEnabled=true` 才会接管 11 个端点）
 4. 可选：在 Model Picker 选择 `byok:<providerId>:<modelId>`（由 `/get-models` 注入）
 
 配置存储：VS Code extension `globalState`（含 Key/Token；不参与 Sync）。字段与约束见 `docs/CONFIG.md`；示例见 `config.example.json`。
 
-可选：面板支持 `Prompts`（按 endpoint 追加 system prompt，仅 BYOK 生效）与 `Self Test`（一键验证 models/chat/chat-stream）。
+可选：面板支持 `Self Test`（一键验证 models/chat/chat-stream + 工具链路）。
 
 常用命令：
 - `BYOK: Enable` / `BYOK: Disable (Rollback)`
@@ -33,12 +33,14 @@
 
 协议适配细节（工具/stop_reason/用量/兜底/常见网关差异）见 `docs/PROVIDERS.md`。
 
-## 13 个端点（会被 BYOK shim 接管）
+## 11 个端点（会被 BYOK shim 接管）
 
-- `callApi`（6）：`/get-models`、`/chat`、`/completion`、`/chat-input-completion`、`/edit`、`/next_edit_loc`
-- `callApiStream`（7）：`/chat-stream`、`/prompt-enhancer`、`/instruction-stream`、`/smart-paste-stream`、`/next-edit-stream`、`/generate-commit-message-stream`、`/generate-conversation-title`
+- `callApi`（5）：`/get-models`、`/chat`、`/completion`、`/chat-input-completion`、`/next_edit_loc`
+- `callApiStream`（6）：`/chat-stream`、`/prompt-enhancer`、`/instruction-stream`、`/smart-paste-stream`、`/next-edit-stream`、`/generate-commit-message-stream`
 
-完整端点范围（71/13）见 `docs/ENDPOINTS.md`。
+> 上游 `augment/vscode-augment@0.801.0` 已移除 `/edit` 与 `/generate-conversation-title`，因此默认 BYOK 覆盖矩阵同步收敛为 11 个端点。
+
+完整端点范围（52/11）见 `docs/ENDPOINTS.md`。
 
 ## 排障（高频）
 
@@ -50,17 +52,17 @@
 
 ## 本地构建
 
-前置：Node.js 20+、Python 3、可访问 Marketplace
+前置：Node.js 20+、Python 运行时、可访问 Marketplace（优先 `python3`；Windows 可用 `py -3`；否则回退 `python`）
 
 - 快速检查（不依赖上游缓存）：`npm run check:fast`
 - 完整检查（需要缓存上游 VSIX）：`npm run upstream:analyze`（一次）→ `npm run check`
-- 构建：`npm run build:vsix`（产物：`dist/augment.vscode-augment.<upstreamVersion>.byok.vsix`）
+- 构建：`npm run build:vsix`（产物：`dist/augment.vscode-augment.<upstreamVersion>-byok.<buildId>.vsix`）
 
 ## 文档（索引）
 
 - `docs/CONFIG.md`：配置/路由/字段限制（单一真相）
 - `docs/PROVIDERS.md`：4 个 provider.type 的协议适配与兼容矩阵
-- `docs/ENDPOINTS.md`：端点范围（71/13）
+- `docs/ENDPOINTS.md`：端点范围（52/11）
 - `docs/ARCH.md`：架构/最小补丁面概览/开发约束（全量修改功能清单见下文）
 
 ## 全量修改功能（对上游 VSIX 的“全量改动面”清单）
@@ -71,7 +73,7 @@
 ### 0) 总体目标与边界（Scope / Non-goals）
 
 - [x] 单一 VSIX：所有能力都打包进一个 `*.vsix`，无需 Rust/外部代理服务
-- [x] 最小破坏面：只接管 **13 个 LLM 数据面端点**（其余端点维持 official 或按需 disabled）
+- [x] 最小破坏面：只接管 **11 个 LLM 数据面端点**（其余端点维持 official 或按需 disabled）
 - [x] 可回滚：运行时一键回滚（`runtimeEnabled=false` 即回到官方链路）
 - [x] 可审计：锁定上游版本与关键注入物的 sha256，并产出覆盖矩阵/端点全集报告
 - [x] fail-fast：上游升级导致 patch needle / 合约不满足时，构建直接失败（避免 silent break）
@@ -90,7 +92,7 @@
 - [x] Overlay 运行时代码与 UI：把 `payload/extension/out/byok/*` 覆盖到上游 `extension/out/byok/*`
 - [x] 上游 VSIX 下载/解包能力复用：`tools/lib/upstream-vsix.js`（build / analyze / contracts 共用）
 - [x] BYOK patch 编排复用：`tools/lib/byok-workflow.js`（避免构建脚本与合约脚本漂移）
-- [x] 产物输出：`dist/augment.vscode-augment.<upstreamVersion>.byok.vsix`
+- [x] 产物输出：`dist/augment.vscode-augment.<upstreamVersion>-byok.<buildId>.vsix`
 - [x] 产物锁文件（上游+注入物 sha）：`upstream.lock.json` / `dist/upstream.lock.json`
 - [x] 端点覆盖报告：`dist/endpoint-coverage.report.md`（LLM 端点覆盖矩阵）
 - [x] 上游端点全集分析：`.cache/reports/upstream-analysis.json`（由 `npm run upstream:analyze` 生成）
@@ -107,14 +109,12 @@
 
 #### 2.2 Webview 资产外科式补丁（上游 bundle 层）
 
-- [x] 工具卡片历史回放兜底：避免重启后历史 turn 的工具区域因 store 未恢复而空白
-  - [x] patch 脚本：`tools/patch/patch-webview-tooluse-fallback.js`
-  - [x] patch 目标：`common-webviews/assets/AugmentMessage-*.js`（按文件名模式匹配）
-  - [-] 兼容策略：以“needle/正则”做最小替换；上游 bundle 结构大改时会 fail-fast（要求人工审查更新）
 - [x] History Summary 节点瘦身：避免 Editable History 等路径对巨型节点 stringify/clone 导致内存爆炸
   - [x] patch 脚本：`tools/patch/patch-webview-history-summary-node.js`
   - [x] patch 目标：`common-webviews/assets/extension-client-context-*.js`
-  - [x] 策略：把 HISTORY_SUMMARY 节点存储改为 TEXT 节点（语义保持、体积大幅下降）
+  - [x] 当前默认启用：`historyonly` 实测正常；构建期固定执行，不再暴露额外环境变量
+- [x] 已移除 Tool Use fallback：`tooluseonly` 与 `toolusefix` 都会导致主面板空白，相关 patch/开关/测试已从主线删除
+- [x] Webview 资产 cache-bust：对带 `__augment_byok_` marker 的 patched JS 改名并重写 `common-webviews/*` 引用，避免 VS Code/WebView 复用旧缓存
 
 #### 2.3 注入 BYOK 运行时入口（bootstrap）
 
@@ -132,7 +132,7 @@
 
 - [x] 目标：把官方 `completionURL/apiToken` 来源从 VS Code settings 改为 `globalState`
 - [x] 注入脚本：`tools/patch/patch-official-overrides.js`
-- [x] 行为：支持私有租户/官方上下文注入（token 可选；失败不影响 BYOK 主链路）
+- [x] 行为：支持私有租户 / 官方上下文注入（token 可选；缺 token 时注入会 skip，不影响 BYOK 主链路）
 
 #### 2.6 模型选择器补丁（Model Picker：BYOK-only）
 
@@ -180,7 +180,7 @@
 - [x] 一键回滚命令：`BYOK: Disable (Rollback)`（不清空配置，仅切换运行时）
 - [x] 一键开启命令：`BYOK: Enable`
 - [x] 热更新：面板 `Save` 后对“后续请求”生效（不需要 Reload Window）
-- [x] 安全回退：路由为 BYOK 但处理失败时，shim 捕获错误并回落 official（避免阻断用户）
+- [x] 严格失败：路由为 BYOK 且官方拼接/端点组装失败时直接抛错（避免 silent mismatch）
 
 ### 4) 配置系统（globalState v1：字段/限制/兼容）
 
@@ -209,10 +209,10 @@
 - [x] 防原型污染：拒绝/过滤 `__proto__` / `prototype` / `constructor` 等不安全 key（配置与 UI 消息均做 hasOwnProperty 防护）
 - [x] BYOK 内部字段隔离：`requestDefaults` 中的 BYOK 内部 key 会在发往上游前剥离（避免污染上游请求）
 
-#### 4.4 Official 连接（仅用于：/get-models 合并 + 官方上下文注入）
+#### 4.4 Official 连接（用于：/get-models 合并；也可切私有租户）
 
 - [x] `official.completionUrl`：默认 `https://api.augmentcode.com/`（可切私有租户）
-- [-] `official.apiToken`：可空（无 token 时，官方上下文注入可能失败，但 BYOK 生成不受影响）
+- [-] `official.apiToken`：可空（缺 token 时：私有租户调用/官方上下文注入都会 skip；BYOK 主链路不受影响）
 
 #### 4.5 providers[]（BYOK 上游列表）
 
@@ -228,19 +228,12 @@
 #### 4.6 routing.rules（端点路由规则）
 
 - [x] 规则结构：`routing.rules[endpoint]={ mode, providerId?, model? }`
-- [x] `mode=byok`：走 BYOK（仅对 13 个 LLM 数据面端点提供语义实现）
+- [x] `mode=byok`：走 BYOK（仅对 11 个 LLM 数据面端点提供语义实现）
 - [x] `mode=official`：强制走官方（即使 runtimeEnabled=true 也不接管）
 - [x] `mode=disabled`：直接 no-op（callApi 返回 `{}`，callApiStream 返回空 stream）
 - [-] 规则合并：用户 rules 与默认 rules 合并；不建议手填未知端点（上游升级可能改变集合）
 
-#### 4.7 prompts（按 endpoint 追加 system prompt，仅 BYOK 生效）
-
-- [x] `prompts.endpointSystem[endpoint]`：按端点追加 system prompt
-- [x] 生效范围：仅 BYOK（runtimeEnabled=true 且 endpoint 走 byok 路由）
-- [x] 注入位置：保证“输出约束类 system prompt”仍保持在最后（避免破坏上游格式约束）
-- [x] 面板提供“一键填充（推荐）”模板（覆盖当前 endpointSystem；建议先 Export 备份）
-
-#### 4.8 输出上限（max tokens 自动推断）
+#### 4.7 输出上限（max tokens 自动推断）
 
 - [x] 当 `providers[].requestDefaults` 未配置任何 max tokens 字段时：BYOK 会自动注入 `max_output_tokens`
 - [x] 推断策略：按 model 名称推断上下文窗口大小 + 估算 prompt 体积，尽可能给出“不会轻易截断”的输出预算（并预留安全余量）
@@ -248,7 +241,7 @@
 - [x] 若触发 token-limit 重试：会强制覆盖所有 max tokens 别名 key（含 `generationConfig.maxOutputTokens`），避免不同映射优先级绕过
 - [x] 上游拒绝（token limit/context length）时：自动缩小 max tokens 并重试（流式仅在未输出任何 chunk 时允许重试，避免重复输出）
 
-#### 4.9 historySummary（滚动摘要：上下文压缩）
+#### 4.8 historySummary（滚动摘要：上下文压缩）
 
 - [x] `historySummary.enabled`：默认 false（显式开启才生效）
 - [-] `historySummary.providerId/model`：可空（仅控制“摘要生成模型”；为空时 fallback 到当前 provider/model）
@@ -268,7 +261,7 @@
 - [x] 兜底：summary 生成失败/超时/未配置时，仍会注入 fallback summary 强制压缩（避免请求过大导致直接失败）
 - [x] 兜底：`end_part_full` 中的 `tool_result` / `tool_use input` 会中间截断（保留尾部引用 id），防止单个工具输出撑爆上下文
 
-### 5) 端点覆盖（71 / 13）与路由策略
+### 5) 端点覆盖（52 / 11）与路由策略
 
 #### 5.1 端点全集与覆盖矩阵
 
@@ -276,14 +269,14 @@
 - [x] LLM 覆盖矩阵：`npm run report:coverage` → `dist/endpoint-coverage.report.md`
 - [x] 端点文档：`docs/ENDPOINTS.md`
 
-#### 5.2 13 个 LLM 数据面端点（BYOK 语义实现）
+#### 5.2 11 个 LLM 数据面端点（BYOK 语义实现）
 
-- [x] `callApi`（6）：`/get-models`、`/chat`、`/completion`、`/chat-input-completion`、`/edit`、`/next_edit_loc`
-- [x] `callApiStream`（7）：`/chat-stream`、`/prompt-enhancer`、`/instruction-stream`、`/smart-paste-stream`、`/next-edit-stream`、`/generate-commit-message-stream`、`/generate-conversation-title`
+- [x] `callApi`（5）：`/get-models`、`/chat`、`/completion`、`/chat-input-completion`、`/next_edit_loc`
+- [x] `callApiStream`（6）：`/chat-stream`、`/prompt-enhancer`、`/instruction-stream`、`/smart-paste-stream`、`/next-edit-stream`、`/generate-commit-message-stream`
 - [x] 单一真相维护：`tools/report/llm-endpoints-spec.js`
 - [x] 自动生成同步：`npm run gen:llm-endpoints`（更新 `docs/ENDPOINTS.md` + UI + 默认 routing rules）
 
-#### 5.3 其余 58 个端点（默认 official / 按需 disabled）
+#### 5.3 其余 41 个端点（默认 official / 按需 disabled）
 
 - [ ] Remote Agents（15）：不接管（依赖控制面/权限/状态机），默认 official
 - [ ] Agents / Tools（6）：不接管（远程工具路由），默认 official
@@ -293,7 +286,7 @@
 - [ ] 反馈/遥测/调试（17）：不接管（部分默认 disabled，少量保持 official）
 - [ ] 通知（2）：不接管（默认 official）
 
-### 6) callApi（非流式）实现细目（6）
+### 6) callApi（非流式）实现细目（5）
 
 #### 6.1 `/get-models`（模型注册 + feature_flags 注入）
 
@@ -307,31 +300,24 @@
 
 #### 6.2 `/chat`（Augment chat → provider chat，非流式）
 
-- [x] 解析 Augment chat 请求体（message/chat_history/nodes/tool_definitions 等）
-- [x] 注入 endpoint 级额外 system prompt：`prompts.endpointSystem["/chat"]`
-- [-] 尝试注入官方上下文（失败忽略）：codebase-retrieval / external sources / context canvas
+- [x] 官方拼接（固定）：复用上游 `callApi` 的 `body`（`source=upstream.callApiBody*`）
+- [x] 请求归一：`normalizeAugmentChatRequest()`（统一字段/别名/shape）
 - [-] 可选 historySummary：在触发阈值时自动压缩 chat_history（失败忽略）
-- [x] 支持 asset/checkpoint hydrate：需要时从上游拉取图片/文件/检查点（失败忽略）
-- [x] 输出补充：`checkpoint_not_found` / `workspace_file_chunks`（供 UI/上游侧使用）
+- [-] upstream hydrate（失败忽略）：assets(file/image) / checkpoints（补齐附件与 editable history）
+- [-] 官方上下文注入（失败忽略；需 official token）：codebase-retrieval / external sources / context canvas（`disable_retrieval=true` 可关闭）
+- [x] 输出补充：`checkpoint_not_found` / `workspace_file_chunks`（来自官方拼接 meta 或本地派生）
 
 #### 6.3 `/completion`（文本补全）
 
-- [x] 统一消息构造：`buildMessagesForEndpoint("/completion", body, cfg)`
-- [x] provider 文本完成：`completeTextByProviderType()`（跨 provider 统一接口）
+- [x] 官方拼接（固定）：从上游 body 推导 `system/messages`（`resolveByokTextPromptContext()`）
+- [x] provider 文本完成：`byokCompleteText()`（跨 provider 统一接口）
 - [x] 结果封装为 Augment completion 结果结构（兼容上游 transform）
 
 #### 6.4 `/chat-input-completion`（输入框补全）
 
 - [x] 语义同 `/completion`（共用同一实现）
-- [x] 可通过 `prompts.endpointSystem["/chat-input-completion"]` 做差异化偏好（仅 BYOK）
 
-#### 6.5 `/edit`（编辑：输出必须符合上游约束）
-
-- [x] 统一消息构造：`buildMessagesForEndpoint("/edit", body, cfg)`
-- [x] 结果封装为 `{ text: ... }`（兼容上游 edit 结果）
-- [-] 建议在 `prompts.endpointSystem["/edit"]` 强化“只输出代码”类约束（避免解释）
-
-#### 6.6 `/next_edit_loc`（下一处编辑位置：LLM 候选 + baseline 合并）
+#### 6.5 `/next_edit_loc`（下一处编辑位置：LLM 候选 + baseline 合并）
 
 - [x] baseline：从请求/上游能力中提取候选（若有）
 - [-] LLM 候选：通过 provider 完成文本 → 解析 JSON 候选 → 与 baseline 合并
@@ -339,7 +325,7 @@
 - [-] 失败兜底：LLM 失败/解析失败 → 回退 baseline（不中断）
 - [-] 可选 workspace blob 注入：当缺少必要上下文时按 pathHint 拉取 workspace 内容辅助定位
 
-### 7) callApiStream（流式）实现细目（7）
+### 7) callApiStream（流式）实现细目（6）
 
 #### 7.1 `/chat-stream`（NDJSON：Augment chat chunks）
 
@@ -353,6 +339,7 @@
 - [x] max tokens：未配置时自动推断注入；上游拒绝时自动缩小并重试（仅在未输出 chunk 时重试）
 - [x] 输出补充：`checkpoint_not_found` / `workspace_file_chunks`（仅首 chunk 注入一次）
 - [x] 流式安全网：`guardObjectStream()` 将异常转换为可读错误 chunk（避免 UI 卡死）
+- [x] 文本流包装器已收敛：`chat_result delta` / `instruction-like replacement` / `next-edit complete` 共用 trace label 与 stream wrapper helper；再往下的继续清理主要是样式级收益
 
 #### 7.2 `/prompt-enhancer`（流式：chat_result delta 包装）
 
@@ -360,28 +347,21 @@
 - [x] 输出结构：把 delta 包装为 `{ text: delta, nodes: [] }` 的 chat_result 结构
 - [-] 适配不同 provider 的 SSE/JSON：content-type=JSON 时自动走 JSON 解析路径
 
-#### 7.3 `/generate-conversation-title`（流式：chat_result delta 包装）
-
-- [x] 语义同 `/prompt-enhancer`（同一实现）
-- [-] 可通过 `prompts.endpointSystem["/generate-conversation-title"]` 约束输出格式（仅 BYOK）
-
-#### 7.4 `/instruction-stream`（流式：replacement_text）
+#### 7.3 `/instruction-stream`（流式：replacement_text）
 
 - [x] 首 chunk 先输出 meta（replacement_id / language 等上游所需字段）
 - [x] 后续 delta 同步写入 `text` 与 `replacement_text`（上游可直接 apply）
 - [-] 出错兜底：返回携带 meta 的错误文本（不中断整个流式会话）
 
-#### 7.5 `/smart-paste-stream`（流式：replacement_text）
+#### 7.4 `/smart-paste-stream`（流式：replacement_text）
 
 - [x] 语义同 `/instruction-stream`（同一实现）
-- [-] 可用 `prompts.endpointSystem["/smart-paste-stream"]` 做粘贴更保守/更一致的偏好（仅 BYOK）
 
-#### 7.6 `/generate-commit-message-stream`（流式：chat_result delta 包装）
+#### 7.5 `/generate-commit-message-stream`（流式：chat_result delta 包装）
 
 - [x] 语义同 `/prompt-enhancer`（同一实现）
-- [-] 推荐配 `prompts.endpointSystem["/generate-commit-message-stream"]` 强约束输出（英文单行、无句号等）
 
-#### 7.7 `/next-edit-stream`（伪流式：一次性生成 next edit chunk）
+#### 7.6 `/next-edit-stream`（伪流式：一次性生成 next edit chunk）
 
 - [x] 若请求缺 prefix/suffix：自动从 workspace blob 补齐上下文（pathHint + blobNameHint）
 - [x] 调用 provider 非流式 complete：一次性生成 `suggestedCode`
@@ -432,7 +412,7 @@
 - [x] chat-stream：解析 responses SSE 并输出 Augment chunks（RAW_RESPONSE/THINKING/TOOL_USE/TOKEN_USAGE/final）
 - [x] `status=incomplete` + `incomplete_details.reason`：映射为 Augment stop_reason（`max_output_tokens`→MAX_TOKENS；`content_filter`→SAFETY；其余→UNSPECIFIED）
 - [x] 结束兜底：`response.completed`/final JSON 到来时补齐未完整输出的尾部文本（兼容部分网关缺失 done 事件）
-- [x] 工具 schema 严格化：补齐 `additionalProperties=false`；`required` 若缺省则兜底为全 required，若已提供则保留原值（Responses 对 schema 更严格）
+- [x] 工具 schema 严格化：补齐 `additionalProperties=false`；对象 schema 的 `required` 强制覆盖全部 `properties`（Responses 对 schema 更严格）
 
 #### 8.4 `anthropic`（Anthropic Messages API 兼容）
 
@@ -469,9 +449,7 @@
 - [x] TEXT：把用户/系统文本归一为 provider 输入
 - [x] TOOL_RESULT：把工具执行结果注入到 provider 输入（并做摘要/截断兜底）
 - [x] IMAGE：把图片（base64+format）转换为各 provider 的 image part/block（或降级省略）
-- [x] IMAGE_ID：当只给了 image_id（无 bytes）时，降级为 prompt 文字提示（避免阻断）
-- [x] CHECKPOINT_REF：需要时从上游 hydrate（找不到则标记 checkpoint_not_found）
-- [x] FILE / FILE_ID：需要时从上游 hydrate（用于把文件内容注入模型上下文）
+- [x] IMAGE_ID / FILE_ID / CHECKPOINT_REF：默认降级为 prompt 文字提示；chat 路径会尽力从上游 hydrate 补齐 bytes/检查点（失败忽略）
 - [x] HISTORY_SUMMARY：支持将 summary node 渲染为 supervisor 文本（并把 tool_results 合并到 end_part_full）
 
 #### 9.2 响应节点（Response Nodes）构建（输出侧）
@@ -482,26 +460,19 @@
 - [-] TOKEN_USAGE：provider 支持 usage 统计时输出（含 cache tokens）
 - [x] FINAL：统一输出最终 chunk（stop_reason/endedCleanly/tool_use 相关约束）
 
-### 10) Prompts：按端点追加 system prompt（仅 BYOK 上游）
+### 10) 官方拼接（固定）
 
-- [x] 作用域隔离：只影响发往 BYOK provider 的 system prompt，不影响官方链路
-- [x] endpoint key 归一化：只看 pathname（避免 query 参数导致“同端点多份 prompt”）
-- [x] chat 类端点：拼接到 system prompt（与 user_guidelines/workspace_guidelines 同级）
-- [x] 非 chat 类端点：拼接到 BYOK purpose system prompt（保证格式约束仍在最后）
-- [x] 推荐策略：语言/风格等“全局偏好”用 Augment 自带 Guidelines；BYOK prompts 只做端点差异化
+- [x] chat / non-chat 共用同一套 delegation 约定：统一 `source/reason` 归一、audit 文案、失败消息格式、以及 `checkpoint_not_found/workspace_file_chunks` meta 提取
+- [x] LLM 端点在 `mode=byok` 下固定使用官方拼接结果（`source=upstream.callApiBody*`）
+- [x] 移除 `officialDelegation` 配置与请求级 `delegate_*` 覆盖，避免双通路复杂度
+- [x] text 端点组装：优先从上游 body 抽取 `messages/input`；缺失时按端点字段组装 `system/messages`；仍无法组装则报错
+- [x] 执行归属仅由 `routing.rules[endpoint].mode` 决定：
+  - `byok`：官方拼接 + BYOK provider 执行
+  - `official`：官方链路执行
 
-### 11) 官方上下文注入（仅 /chat、/chat-stream）
+### 11) History Summary（滚动摘要：上下文压缩）实现细目
 
-- [x] 注入入口：BYOK chat 在构造 provider 请求前，尝试调用官方能力补充外部上下文
-- [-] 注入工具：`agents/codebase-retrieval`
-- [-] 注入工具：`get-implicit-external-sources`
-- [-] 注入工具：`search-external-sources`
-- [-] 注入工具：`context-canvas/list`
-- [-] 失败策略：任何注入失败都 **忽略并继续 BYOK 生成**（不把失败扩散到用户体验）
-- [-] 关闭方式：请求体 `disable_retrieval=true` 或 `disableRetrieval=true`
-
-### 12) History Summary（滚动摘要：上下文压缩）实现细目
-
+- [x] 运行时功能与 webview 补丁解耦：`historySummary.enabled` 控制是否生成摘要；`HISTORY_SUMMARY -> TEXT` 瘦身补丁始终开启
 - [x] 触发前置条件：`historySummary.enabled=true` 且有 `conversation_id` 且 chat_history 非空
 - [x] 防重复：仅当前 request 已包含 summary node 时跳过；history 中已有旧 summary 仍可刷新
 - [x] 触发决策：支持 `chars` / `ratio` / `auto`（auto 会结合上下文窗口估算）
@@ -520,14 +491,14 @@
 - [x] 兜底：summary 生成失败时仍会注入 fallback summary（保证压缩路径可用）
 - [x] 兜底：`end_part_full` 中的 `tool_result` / `tool_use input` 会做中间截断，避免上下文爆炸
 
-### 13) Workspace/Upstream 数据补齐（assets/checkpoints/文件片段）
+### 12) Workspace/Upstream 元数据（checkpoint_not_found / workspace_file_chunks）
 
-- [x] asset hydrate：当请求仅给了 `image_id` / `file_id` 时，尝试从上游资产管理器拉取 bytes（失败忽略）
-- [x] checkpoint hydrate：当请求引用 checkpoint 时，尝试从上游 checkpointManager 拉取内容
-- [x] checkpoint_not_found：找不到 checkpoint 时在输出中标记（便于 UI/上游提示）
-- [-] workspace_file_chunks：从请求中提取可用 workspace file chunks（maxChunks=80），并随响应返回
+- [x] 非流式与流式共用同一套 chat response meta helper：统一合并 delegated/prep 元数据，并约束 `workspace_file_chunks` 仅首个 stream chunk 注入一次
+- [-] chat 路径会按需做 asset/checkpoint hydrate（失败忽略；用于附件/编辑历史补齐）
+- [x] `checkpoint_not_found`：从官方拼接 meta 透传（chat/chat-stream）
+- [x] `workspace_file_chunks`：优先从官方拼接 meta 透传；缺失时从 request 派生（maxChunks=80）
 
-### 14) Self Test（面板一键自检：models/chat/chat-stream + 工具实测）
+### 13) Self Test（面板一键自检：models/chat/chat-stream + 工具实测）
 
 - [x] Self Test 入口：面板点击即可运行（支持日志流式输出）
 - [x] provider 连通性测试：models / complete / stream（按 providerId 逐个测）
@@ -537,7 +508,7 @@
 - [-] 真实工具 roundtrip：通过上游 toolsModel 做一次真实执行（会有副作用：文件/网络/浏览器等，按环境可用性决定）
 - [-] historySummary 自检：用可用 provider 生成一次摘要（验证触发/模板/注入链路）
 
-### 15) Hardening / 安全与稳定性
+### 14) Hardening / 安全与稳定性
 
 - [x] 日志脱敏：永不输出 key/token 全文（`infra/log.js` 递归 redact：authorization/apiKey/apiToken/encrypted_data 等）
 - [x] 配置反原型污染：过滤不安全 key（`config/normalize-config.js`）
@@ -545,7 +516,7 @@
 - [x] 错误可诊断：关键链路带 trace label（endpoint/provider/model/requestId），并尽量输出可读错误文本
 - [x] 流式安全兜底：异常被包装为可渲染的 error chunk（避免 UI 无输出/卡住）
 
-### 16) CI / Release（rolling + 增量审查）
+### 15) CI / Release（rolling + 增量审查）
 
 - [x] rolling release：push 默认分支自动构建并更新 `rolling` tag 的 Release
 - [x] upstream-check：定时拉取最新上游 VSIX，版本变化则 PR 更新 `upstream.lock.json`

@@ -57,8 +57,8 @@ function buildCodebaseRetrievalInformationRequest(req) {
   const parts = [];
   const main = normalizeString(req?.message);
   if (main) parts.push(main.trim());
-  for (const p of augmentChatShared.buildUserExtraTextParts(req, { hasNodes: false })) {
-    const s = normalizeString(p);
+  for (const part of augmentChatShared.buildUserExtraTextParts(req, { hasNodes: false })) {
+    const s = normalizeString(part);
     if (s) parts.push(s.trim());
   }
   if (normalizeString(req?.path)) parts.push(`path: ${String(req.path).trim()}`);
@@ -121,3 +121,4 @@ async function maybeInjectOfficialCodebaseRetrieval({ req, timeoutMs, abortSigna
 }
 
 module.exports = { maybeInjectOfficialCodebaseRetrieval };
+

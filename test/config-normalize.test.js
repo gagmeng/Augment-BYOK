@@ -87,34 +87,23 @@ test("normalizeConfig: provider.models ignores non-string entries", () => {
   assert.deepEqual(cfg.providers[0].models, ["a", "b"]);
 });
 
-test("normalizeConfig: prompts.endpointSystem is normalized and safe", () => {
+test("normalizeConfig: drops legacy officialDelegation block", () => {
   const cfg = normalizeConfig({
-    prompts: {
-      globalSystem: "  GLOBAL  ",
-      endpointSystem: {
-        "/chat": "  CHAT  ",
-        "chat-stream?x=1": "  STREAM  ",
-        "__proto__": { polluted: "yes" }
+    officialDelegation: {
+      enabled: true,
+      strictByokExecution: true,
+      executionOwner: "official",
+      intrusionMode: "strong",
+      failPolicy: "fallback_official",
+      timeoutMs: 5000,
+      endpoints: {
+        chat: true,
+        "/chat-stream?x=1": false,
+        "/completion": true,
+        "/invalid": "x"
       }
     }
   });
 
-  assert.equal(Object.prototype.hasOwnProperty.call(cfg.prompts, "globalSystem"), false);
-  assert.equal(cfg.prompts.endpointSystem["/chat"], "CHAT");
-  assert.equal(cfg.prompts.endpointSystem["/chat-stream"], "STREAM");
-  assert.equal(Object.prototype.hasOwnProperty.call(cfg.prompts.endpointSystem, "__proto__"), false);
-  assert.equal(cfg.prompts.endpointSystem.polluted, undefined);
-});
-
-test("normalizeConfig: drops prompts.activePresetId/presets (no prompt sets)", () => {
-  const cfg = normalizeConfig({
-    prompts: {
-      activePresetId: "p1",
-      presets: [{ id: "p1", name: "Preset 1", endpointSystem: { "/chat": "x" } }],
-      endpointSystem: { "/chat": "INLINE" }
-    }
-  });
-  assert.equal(Object.prototype.hasOwnProperty.call(cfg.prompts, "activePresetId"), false);
-  assert.equal(Object.prototype.hasOwnProperty.call(cfg.prompts, "presets"), false);
-  assert.equal(cfg.prompts.endpointSystem["/chat"], "INLINE");
+  assert.equal(Object.prototype.hasOwnProperty.call(cfg, "officialDelegation"), false);
 });

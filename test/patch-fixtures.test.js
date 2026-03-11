@@ -9,6 +9,7 @@ const { patchAugmentInterceptorInject } = require("../tools/patch/patch-augment-
 const { patchCallApiShim } = require("../tools/patch/patch-callapi-shim");
 const { patchExposeUpstream } = require("../tools/patch/patch-expose-upstream");
 const { patchExtensionEntry } = require("../tools/patch/patch-extension-entry");
+const { patchMemoriesUpperBoundSize } = require("../tools/patch/patch-memories-upper-bound-size");
 const { patchModelPickerByokOnly } = require("../tools/patch/patch-model-picker-byok-only");
 const { patchOfficialOverrides } = require("../tools/patch/patch-official-overrides");
 const { patchPackageJsonCommands } = require("../tools/patch/patch-package-json-commands");
@@ -132,6 +133,35 @@ test("patchModelPickerByokOnly: injects BYOK-only model filter and is idempotent
   });
 });
 
+test("patchMemoriesUpperBoundSize: injects fallback upper_bound_size and is idempotent", () => {
+  withTempDir("augment-byok-patch-", (dir) => {
+    const filePath = path.join(dir, "extension.js");
+    const src = [
+      `"use strict";`,
+      `function X(){return {flags:{memoriesParams:{upper_bound_size:321}}};}`,
+      `class M{`,
+      `  run(){let a=X().flags.memoriesParams.upper_bound_size;return a;}`,
+      `}`,
+      `exports.M=M;`
+    ].join("\n");
+    writeUtf8(filePath, src);
+
+    const r1 = patchMemoriesUpperBoundSize(filePath, { defaultUpperBoundSize: 10000 });
+    assert.equal(r1.changed, true);
+    assert.equal(r1.defaultUpperBoundSize, 10000);
+
+    const out1 = readUtf8(filePath);
+    assert.ok(out1.includes("__augment_byok_memories_upper_bound_size_patched_v1"));
+    assert.ok(out1.includes("let __byok_memoriesParams=X().flags.memoriesParams;"));
+    assert.ok(out1.includes("let a=(__byok_memoriesParams&&__byok_memoriesParams.upper_bound_size)||10000;"));
+
+    const r2 = patchMemoriesUpperBoundSize(filePath, { defaultUpperBoundSize: 10000 });
+    assert.equal(r2.changed, false);
+    const out2 = readUtf8(filePath);
+    assert.equal(out2, out1);
+  });
+});
+
 test("patchExposeUpstream: captures AugmentExtension instance and is idempotent", () => {
   withTempDir("augment-byok-patch-", (dir) => {
     const filePath = path.join(dir, "extension.js");
@@ -152,6 +182,7 @@ test("patchExposeUpstream: captures AugmentExtension instance and is idempotent"
     const out1 = readUtf8(filePath);
     assert.ok(out1.includes("__augment_byok_expose_upstream_v1"));
     assert.ok(out1.includes("globalThis.__augment_byok_upstream.augmentExtension=inst;"));
+    assert.ok(out1.includes("globalThis.__augment_byok_upstream.officialChatDelegation=inst;"));
 
     const r2 = patchExposeUpstream(filePath);
     assert.equal(r2.changed, false);
@@ -263,30 +294,21 @@ test("patchOfficialOverrides: applies expected replacements and is idempotent", 
       `  async getCompletionURL(){return this.configListener.config.completionURL}`,
       `}`,
       ``,
-      `function normalizeConfigListener(t){`,
-      `  return {apiToken:(t?.advanced?.apiToken??t.apiToken??"").trim().toUpperCase(),completionURL:(t?.advanced?.completionURL??t.completionURL??"").trim()}`,
-      `}`,
-      ``,
       `class ApiClient{`,
       `  async makeAuthenticatedCall(t,r,n,i="POST",o,s){`,
-      `    const c="https://example.com/";`,
+      `    const c="https://example.com/root/";`,
       `    const u=new URL(t,c)`,
-      `    const f={status:500,statusText:"ERR"}`,
-      "    throw new at(`API call failed: ${f.statusText}`,Ye.Internal)",
+      `    return {u};`,
       `  }`,
       `  async makeAuthenticatedCallStream(t,r,n,i="post",o){`,
-      `    const c={tenantUrl:"https://example.com/"};`,
+      `    const c={tenantUrl:"https://example.com/root/"};`,
       `    const u=new URL(t,c.tenantUrl)`,
-      `    const f={status:500,statusText:"ERR"}`,
-      "    throw new at(`API call failed: ${f.statusText}`,Ye.Internal)",
-      `    const h={status:500,statusText:"ERR"}`,
-      "    throw new at(`API call failed: ${h.statusText}`,Ye.Internal)",
+      `    return {u};`,
       `  }`,
       `  async callApi(p0,p1,p2,p3,p4,baseUrl,p6,p7,p8,p9,apiToken){`,
       `    return {baseUrl,apiToken};`,
       `  }`,
       `  async callApiStream(p0,p1,p2,p3,p4,u){`,
-      `    u=u??await this.clientAuth.getCompletionURL()`,
       `    return {u};`,
       `  }`,
       `}`,
@@ -296,24 +318,25 @@ test("patchOfficialOverrides: applies expected replacements and is idempotent", 
 
     const r1 = patchOfficialOverrides(filePath);
     assert.equal(r1.changed, true);
+    assert.equal(r1.getApiTokenPatched, 1);
+    assert.equal(r1.getCompletionURLPatched, 1);
+    assert.equal(r1.makeAuthenticatedCallPatched, 1);
+    assert.equal(r1.makeAuthenticatedCallStreamPatched, 1);
     assert.equal(r1.callApiPatched, 1);
     assert.equal(r1.callApiStreamPatched, 1);
 
     const out1 = readUtf8(filePath);
     assert.ok(out1.includes("__augment_byok_official_overrides_patched_v1"));
 
-    assert.ok(!out1.includes("return this.configListener.config.apiToken"));
-    assert.ok(!out1.includes("return this.configListener.config.completionURL"));
-
-    assert.ok(!out1.includes("new URL(t,c)"));
-    assert.ok(!out1.includes("new URL(t,c.tenantUrl)"));
-    assert.ok(out1.includes("t.slice(1)"));
-
-    assert.ok(out1.includes("API call failed: ${f.status} ${f.statusText}"));
-    assert.ok(out1.includes("API call failed: ${h.status} ${h.statusText}"));
-
-    assert.ok(!out1.includes("u=u??await this.clientAuth.getCompletionURL()"));
-    assert.ok(out1.includes("u=u||await this.clientAuth.getCompletionURL()"));
+    assert.ok(out1.includes('const __byok_off=require("./byok/config/official");const __byok_conn=__byok_off.getOfficialConnection();'));
+    assert.ok(out1.includes("if(__byok_conn.apiToken)return __byok_conn.apiToken"));
+    assert.ok(out1.includes("if(__byok_conn.apiToken&&__byok_conn.completionURL)return __byok_conn.completionURL"));
+    assert.ok(out1.includes('if(typeof t==="string"&&t[0]==="/")t=t.slice(1);'));
+    assert.ok(out1.includes("if(__byok_conn.apiToken&&!__byok_useOAuth){if(__byok_conn.completionURL)baseUrl=__byok_conn.completionURL;apiToken=__byok_conn.apiToken;}"));
+    assert.ok(out1.includes('if(baseUrl==null||baseUrl==="")baseUrl=await this.clientAuth.getCompletionURL();'));
+    assert.ok(out1.includes('if(apiToken==null||apiToken==="")apiToken=await this.clientAuth.getAPIToken();'));
+    assert.ok(out1.includes("if(__byok_conn.apiToken&&__byok_conn.completionURL&&!__byok_useOAuth)u=__byok_conn.completionURL;"));
+    assert.ok(out1.includes('if(u==null||u==="")u=await this.clientAuth.getCompletionURL();'));
 
     const r2 = patchOfficialOverrides(filePath);
     assert.equal(r2.changed, false);

@@ -1,5 +1,7 @@
 "use strict";
 
+const { applyChatResponseMeta } = require("./chat-response-meta");
+
 const REQUEST_NODE_TEXT = 0;
 const REQUEST_NODE_TOOL_RESULT = 1;
 const REQUEST_NODE_IMAGE = 2;
@@ -102,12 +104,12 @@ function tokenUsageNode({ id, inputTokens, outputTokens, cacheReadInputTokens, c
   return { id: Number(id) || 0, type: RESPONSE_NODE_TOKEN_USAGE, content: "", token_usage: tu };
 }
 
-function makeBackChatChunk({ text, nodes, stop_reason, includeNodes } = {}) {
+function makeBackChatChunk({ text, nodes, stop_reason, includeNodes, meta } = {}) {
   const out = { text: typeof text === "string" ? text : String(text ?? ""), unknown_blob_names: [], checkpoint_not_found: false, workspace_file_chunks: [] };
   const ns = Array.isArray(nodes) ? nodes : [];
   if (includeNodes || ns.length) out.nodes = ns;
   if (stop_reason != null) out.stop_reason = stop_reason;
-  return out;
+  return applyChatResponseMeta(out, meta).out;
 }
 
 module.exports = {

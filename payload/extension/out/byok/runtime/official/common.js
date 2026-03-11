@@ -24,8 +24,8 @@ function maybeInjectUserExtraTextParts({ req, target, startId }) {
   if (!Array.isArray(target)) return false;
   if (countNonToolRequestNodes(req) > 0) return false;
   let id = Number.isFinite(Number(startId)) ? Number(startId) : -30;
-  for (const p of augmentChatShared.buildUserExtraTextParts(req, { hasNodes: false })) {
-    const s = normalizeString(p);
+  for (const part of augmentChatShared.buildUserExtraTextParts(req, { hasNodes: false })) {
+    const s = normalizeString(part);
     if (!s) continue;
     target.push(makeTextRequestNode({ id, text: s.trim() }));
     id -= 1;
@@ -42,3 +42,4 @@ function pickInjectionTargetArray(req) {
 }
 
 module.exports = { makeTextRequestNode, pickInjectionTargetArray, maybeInjectUserExtraTextParts };
+

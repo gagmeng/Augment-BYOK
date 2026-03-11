@@ -10,6 +10,26 @@ function isObject(v) {
   return v != null && typeof v === "object";
 }
 
+function ensureUpstreamBag() {
+  const g = typeof globalThis !== "undefined" ? globalThis : null;
+  if (!g || typeof g !== "object") return null;
+  if (!isObject(g.__augment_byok_upstream)) g.__augment_byok_upstream = {};
+  return isObject(g.__augment_byok_upstream) ? g.__augment_byok_upstream : null;
+}
+
+function rememberUpstreamCallHost(host, { stream } = {}) {
+  if (!isObject(host)) return null;
+  const bag = ensureUpstreamBag();
+  if (!isObject(bag)) return null;
+  const isStream = stream === true;
+  if (isStream) bag.callApiStreamHost = host;
+  else bag.callApiHost = host;
+  bag.callHostCapturedAtMs = Date.now();
+  if (typeof host.callApi === "function") bag.callApiOriginal = host.callApi.bind(host);
+  if (typeof host.callApiStream === "function") bag.callApiStreamOriginal = host.callApiStream.bind(host);
+  return bag;
+}
+
 function findDeep(root, predicate, { maxDepth = 6, maxNodes = 5000 } = {}) {
   const start = isObject(root) ? root : null;
   if (!start) return null;
@@ -105,4 +125,4 @@ function getCachedSingleton({ cache, predicate, directCandidates, deepSearch } =
   return c.set(null);
 }
 
-module.exports = { getByokUpstreamGlobals, findDeep, createTimedCache, getCachedSingleton };
+module.exports = { getByokUpstreamGlobals, findDeep, createTimedCache, getCachedSingleton, rememberUpstreamCallHost };

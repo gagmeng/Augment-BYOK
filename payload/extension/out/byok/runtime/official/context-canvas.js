@@ -40,10 +40,10 @@ function normalizeOfficialContextCanvasListResponse(raw) {
   const out = [];
   for (const it of list) {
     if (!it || typeof it !== "object") continue;
-    const c = it;
-    const id = normalizeString(c.canvas_id ?? c.canvasId ?? c.canvasID ?? c.id ?? "");
-    const name = normalizeString(c.name ?? c.title ?? "");
-    const description = normalizeString(c.description ?? c.summary ?? "");
+    const canvas = it;
+    const id = normalizeString(canvas.canvas_id ?? canvas.canvasId ?? canvas.canvasID ?? canvas.id ?? "");
+    const name = normalizeString(canvas.name ?? canvas.title ?? "");
+    const description = normalizeString(canvas.description ?? canvas.summary ?? "");
     if (!id && !name && !description) continue;
     out.push({ id, name, description });
   }
@@ -142,7 +142,14 @@ async function maybeInjectOfficialContextCanvas({ req, timeoutMs, abortSignal, u
       let pages = 0;
       while (pages < 3 && Date.now() < deadline - 200) {
         const remaining = Math.max(300, deadline - Date.now());
-        const raw = await fetchOfficialContextCanvasList({ completionURL, apiToken, pageSize: 100, pageToken, timeoutMs: remaining, abortSignal });
+        const raw = await fetchOfficialContextCanvasList({
+          completionURL,
+          apiToken,
+          pageSize: 100,
+          pageToken,
+          timeoutMs: remaining,
+          abortSignal
+        });
         const { canvases, nextPageToken } = normalizeOfficialContextCanvasListResponse(raw);
         if (canvases.length) upsertCanvasCache(completionURL, canvases);
         canvas = canvases.find((c) => c && typeof c === "object" && normalizeString(c.id) === canvasId) || getCanvasFromCache(completionURL, canvasId);

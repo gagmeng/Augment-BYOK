@@ -13,7 +13,6 @@
     !dom ||
     typeof dom.applyProvidersEditsFromDom !== "function" ||
     typeof dom.applyRulesEditsFromDom !== "function" ||
-    typeof dom.applyPromptsEditsFromDom !== "function" ||
     typeof dom.gatherSelfTestProviderKeysFromDom !== "function"
   ) {
     throw new Error("BYOK panel init failed (missing dom helpers)");
@@ -236,10 +235,11 @@
         const officialTokenInput = normalizeStr(qs("#officialApiToken")?.value);
         if (officialTokenInput) cfg.official.apiToken = officialTokenInput;
         if (uiState.clearOfficialToken) cfg.official.apiToken = "";
+        delete cfg.officialDelegation;
+        delete cfg.prompts;
 
         dom.applyProvidersEditsFromDom(cfg);
         dom.applyRulesEditsFromDom(cfg);
-        dom.applyPromptsEditsFromDom(cfg);
 
         cfg.routing = cfg.routing && typeof cfg.routing === "object" ? cfg.routing : {};
         cfg.routing.rules = cfg.routing.rules && typeof cfg.routing.rules === "object" ? cfg.routing.rules : {};

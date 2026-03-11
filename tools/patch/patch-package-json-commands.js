@@ -1,10 +1,9 @@
 #!/usr/bin/env node
 "use strict";
 
-const fs = require("fs");
 const path = require("path");
 
-const { readJson, writeJson } = require("../lib/fs");
+const { loadPatchJson, savePatchJson } = require("./patch-target");
 
 const COMMANDS = [
   { command: "augment-byok.enable", title: "BYOK: Enable" },
@@ -45,8 +44,7 @@ function stripAdvancedSettings(contributes) {
 }
 
 function patchPackageJsonCommands(filePath) {
-  if (!fs.existsSync(filePath)) throw new Error(`missing file: ${filePath}`);
-  const pkg = readJson(filePath);
+  const pkg = loadPatchJson(filePath);
   if (!pkg || typeof pkg !== "object") throw new Error("package.json not object");
 
   const contributes = (pkg.contributes && typeof pkg.contributes === "object") ? pkg.contributes : (pkg.contributes = {});
@@ -60,7 +58,7 @@ function patchPackageJsonCommands(filePath) {
 
   const removedSettings = stripAdvancedSettings(contributes);
 
-  writeJson(filePath, pkg);
+  savePatchJson(filePath, pkg);
   return { changed: true, added: COMMANDS.filter((c) => !existing.has(c.command)).map((c) => c.command), removedSettings };
 }
 
