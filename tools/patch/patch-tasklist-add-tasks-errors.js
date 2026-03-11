@@ -54,7 +54,7 @@ function patchTasklistAddTasksErrors(filePath) {
         planVar: hydratedVar
       });
 
-      const newTail = `let ${textVar}=${formatterVar}.formatBulkUpdateResponse(${diffFnVar}(o,${hydratedVar}));${insertion}return{...${okFnVar}(${textVar}),plan:${hydratedVar}}}`;
+      const newTail = `let ${textVar}=${formatterVar}.formatBulkUpdateResponse(${diffFnVar}(o,${hydratedVar}));${insertion}return{...${okFnVar}(${textVar}),plan:${hydratedVar}}`;
       return m[0].replace(oldMatch[0], newTail);
     },
     "tasklist add_tasks errors: handleBatchCreation"
