@@ -11,6 +11,7 @@ const { patchExposeUpstream } = require("../tools/patch/patch-expose-upstream");
 const { patchExtensionEntry } = require("../tools/patch/patch-extension-entry");
 const { patchMemoriesUpperBoundSize } = require("../tools/patch/patch-memories-upper-bound-size");
 const { patchModelPickerByokOnly } = require("../tools/patch/patch-model-picker-byok-only");
+const { patchByokAuthSession } = require("../tools/patch/patch-byok-auth-session");
 const { patchOfficialOverrides } = require("../tools/patch/patch-official-overrides");
 const { patchPackageJsonCommands } = require("../tools/patch/patch-package-json-commands");
 
@@ -339,6 +340,38 @@ test("patchOfficialOverrides: applies expected replacements and is idempotent", 
     assert.ok(out1.includes('if(u==null||u==="")u=await this.clientAuth.getCompletionURL();'));
 
     const r2 = patchOfficialOverrides(filePath);
+    assert.equal(r2.changed, false);
+    const out2 = readUtf8(filePath);
+    assert.equal(out2, out1);
+  });
+});
+
+test("patchByokAuthSession: injects BYOK session fallback and is idempotent", () => {
+  withTempDir("augment-byok-patch-", (dir) => {
+    const filePath = path.join(dir, "extension.js");
+    const src = [
+      `var Vx={commands:{executeCommand(){}}};`,
+      `class AuthSessionStore{`,
+      `  async initState(){this._isLoggedIn=!!await this.getSession();}`,
+      `  async getSession(){return await this._context.secrets.get("augment.sessions");}`,
+      `}`,
+      `exports.AuthSessionStore=AuthSessionStore;`
+    ].join("\n");
+    writeUtf8(filePath, src);
+
+    const r1 = patchByokAuthSession(filePath);
+    assert.equal(r1.changed, true);
+    assert.equal(r1.getSessionPatched, 1);
+    assert.equal(r1.initStatePatched, 1);
+
+    const out1 = readUtf8(filePath);
+    assert.ok(out1.includes("__augment_byok_auth_session_patched_v1"));
+    assert.ok(out1.includes('const __byok_auth=require("./byok/runtime/auth-session");'));
+    assert.ok(out1.includes('const __byok_session=__byok_auth.getByokOfficialSession();'));
+    assert.ok(out1.includes('if(__byok_session)return __byok_session;'));
+    assert.ok(out1.includes('__byok_auth.syncByokAuthState({store:this,commands:Vx.commands});'));
+
+    const r2 = patchByokAuthSession(filePath);
     assert.equal(r2.changed, false);
     const out2 = readUtf8(filePath);
     assert.equal(out2, out1);

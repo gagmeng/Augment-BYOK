@@ -42,6 +42,7 @@
 
 - `core/provider-text.js`：`{system, messages}` → provider 文本（complete + stream deltas）；`/completion`、`/prompt-enhancer`、`/generate-commit-message-stream` 等复用
 - `core/provider-augment-chat.js`：Augment chat req → provider chat（complete + stream chunks）；`/chat`、`/chat-stream`、historySummary/self-test 复用
+- `core/augment-chat/shared/tools.js`：区分 **业务语义层**（`resolveToolSchema`）与 **传输兼容层**（`sanitizeJsonSchemaForTransport` / `resolveToolSchemaForTransport`）；provider 转换统一走 transport sanitize，避免把“省略即默认”的 optional 参数错误提升为必填
 
 ## providers 约定（避免重复实现）
 

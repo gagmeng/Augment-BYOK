@@ -43,7 +43,7 @@ BYOK 接受上游 Augment 的多种字段命名，最终会归一到 `normalizeA
   - SSE：聚合 `response.output_item.*` + `response.function_call_arguments.*`（兼容缺失 added/done 的变体）
   - JSON：从 `response.output[]` 提取 `function_call`
 - **并行工具**：同上（注入 `parallel_tool_calls=false`；并兼容 `parallelToolCalls`）
-- **tools schema**：使用 strict JSON schema（补齐 `additionalProperties=false`；对象 schema 的 `required` 强制覆盖全部 `properties`）
+- **tools schema**：使用 transport-sanitized schema，并设置 `strict: false`；会剥离 `propertyNames`/`patternProperties`/`if`/`then`/`else` 等不兼容关键字，必要时补齐 `type/object/properties` 等结构，但**不再把所有 `properties` 强行写入 `required`**，保留原工具 schema 的 optional / required 业务语义
 - **stop_reason**：解析 `status=incomplete` + `incomplete_details.reason`（`max_output_tokens/content_filter`）映射到 Augment
 - **非流式兜底**：部分网关即使 `stream=false` 也只支持 SSE，会自动做一次 stream fallback 拼接文本
 

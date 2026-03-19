@@ -10,78 +10,153 @@
       "type": "openai_compatible",
       "baseUrl": "https://api.openai.com/v1",
       "apiKey": "sk-your-openai-api-key",
-      "models": ["gpt-5.2", "gpt-5.3-codex"],
+      "models": [
+        "gpt-5.2",
+        "gpt-5.3-codex"
+      ],
       "defaultModel": "gpt-5.2",
       "headers": {},
-      "requestDefaults": { "temperature": 0.2 }
+      "requestDefaults": {
+        "temperature": 0.2
+      }
     },
     {
       "id": "codex",
       "type": "openai_responses",
       "baseUrl": "https://api.openai.com/v1",
       "apiKey": "sk-your-openai-api-key",
-      "models": ["gpt-5.3-codex"],
+      "models": [
+        "gpt-5.3-codex"
+      ],
       "defaultModel": "gpt-5.3-codex",
       "headers": {},
-      "requestDefaults": { "reasoning": { "effort": "medium" } }
+      "requestDefaults": {
+        "reasoning": {
+          "effort": "medium"
+        }
+      },
+      "_comment": "openai_responses 的 tools 会使用 transport-sanitized schema，并以 strict:false 发送；保留原始 required/optional 业务语义。"
     },
     {
       "id": "anthropic",
       "type": "anthropic",
       "baseUrl": "https://api.anthropic.com/v1",
       "apiKey": "sk-ant-your-anthropic-api-key",
-      "models": ["claude-4.6-sonnet", "claude-4.6-opus"],
+      "models": [
+        "claude-4.6-sonnet",
+        "claude-4.6-opus"
+      ],
       "defaultModel": "claude-4.6-sonnet",
       "headers": {},
-      "requestDefaults": { "max_tokens": 8192 }
+      "requestDefaults": {
+        "max_tokens": 8192
+      }
     },
     {
       "id": "gemini",
       "type": "gemini_ai_studio",
       "baseUrl": "https://generativelanguage.googleapis.com/v1beta",
       "apiKey": "AIza-your-gemini-api-key",
-      "models": ["models/gemini-2.5-pro", "models/gemini-2.5-flash", "models/gemini-3-pro", "models/gemini-3-flash"],
+      "models": [
+        "models/gemini-2.5-pro",
+        "models/gemini-2.5-flash",
+        "models/gemini-3-pro",
+        "models/gemini-3-flash"
+      ],
       "defaultModel": "models/gemini-2.5-pro",
       "headers": {},
-      "requestDefaults": { "generationConfig": { "temperature": 0.2 } }
+      "requestDefaults": {
+        "generationConfig": {
+          "temperature": 0.2
+        }
+      }
     },
     {
       "id": "kimi",
       "type": "openai_compatible",
       "baseUrl": "https://api.moonshot.cn/v1",
       "apiKey": "sk-your-kimi-api-key",
-      "models": ["kimi-k2"],
+      "models": [
+        "kimi-k2"
+      ],
       "defaultModel": "kimi-k2",
       "headers": {},
-      "requestDefaults": { "temperature": 0.2 }
+      "requestDefaults": {
+        "temperature": 0.2
+      }
     }
   ],
   "routing": {
     "rules": {
-      "/get-models": { "mode": "byok" },
-      "/chat": { "mode": "byok" },
-      "/chat-stream": { "mode": "byok" },
-      "/prompt-enhancer": { "mode": "byok" },
-      "/completion": { "mode": "byok" },
-      "/chat-input-completion": { "mode": "byok" },
-      "/edit": { "mode": "byok" },
-      "/instruction-stream": { "mode": "byok" },
-      "/smart-paste-stream": { "mode": "byok" },
-      "/next-edit-stream": { "mode": "byok" },
-      "/generate-commit-message-stream": { "mode": "byok" },
-      "/generate-conversation-title": { "mode": "byok" },
-      "/next_edit_loc": { "mode": "byok" },
-
-      "/client-metrics": { "mode": "disabled" },
-      "/client-completion-timelines": { "mode": "disabled" },
-      "/record-preference-sample": { "mode": "disabled" },
-      "/record-request-events": { "mode": "official" },
-      "/record-session-events": { "mode": "disabled" },
-      "/record-user-events": { "mode": "disabled" },
-      "/report-error": { "mode": "official" },
-      "/resolve-completions": { "mode": "disabled" },
-      "/resolve-edit": { "mode": "disabled" },
-      "/resolve-instruction": { "mode": "disabled" }
+      "/get-models": {
+        "mode": "byok"
+      },
+      "/chat": {
+        "mode": "byok"
+      },
+      "/chat-stream": {
+        "mode": "byok"
+      },
+      "/prompt-enhancer": {
+        "mode": "byok"
+      },
+      "/completion": {
+        "mode": "byok"
+      },
+      "/chat-input-completion": {
+        "mode": "byok"
+      },
+      "/edit": {
+        "mode": "byok"
+      },
+      "/instruction-stream": {
+        "mode": "byok"
+      },
+      "/smart-paste-stream": {
+        "mode": "byok"
+      },
+      "/next-edit-stream": {
+        "mode": "byok"
+      },
+      "/generate-commit-message-stream": {
+        "mode": "byok"
+      },
+      "/generate-conversation-title": {
+        "mode": "byok"
+      },
+      "/next_edit_loc": {
+        "mode": "byok"
+      },
+      "/client-metrics": {
+        "mode": "disabled"
+      },
+      "/client-completion-timelines": {
+        "mode": "disabled"
+      },
+      "/record-preference-sample": {
+        "mode": "disabled"
+      },
+      "/record-request-events": {
+        "mode": "official"
+      },
+      "/record-session-events": {
+        "mode": "disabled"
+      },
+      "/record-user-events": {
+        "mode": "disabled"
+      },
+      "/report-error": {
+        "mode": "official"
+      },
+      "/resolve-completions": {
+        "mode": "disabled"
+      },
+      "/resolve-edit": {
+        "mode": "disabled"
+      },
+      "/resolve-instruction": {
+        "mode": "disabled"
+      }
     }
   },
   "historySummary": {

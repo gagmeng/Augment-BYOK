@@ -10,6 +10,7 @@ const { patchAugmentInterceptorInject } = require("../patch/patch-augment-interc
 const { patchDisableChatHistoryTruncation } = require("../patch/patch-disable-chat-history-truncation");
 const { patchExtensionEntry } = require("../patch/patch-extension-entry");
 const { patchOfficialOverrides } = require("../patch/patch-official-overrides");
+const { patchByokAuthSession } = require("../patch/patch-byok-auth-session");
 const { patchCallApiShim } = require("../patch/patch-callapi-shim");
 const { patchExposeUpstream } = require("../patch/patch-expose-upstream");
 const { patchModelPickerByokOnly } = require("../patch/patch-model-picker-byok-only");
@@ -73,6 +74,9 @@ function applyByokPatches({ repoRoot, extensionDir, pkgPath, extJsPath, intercep
 
   log(`patch official (completionURL/apiToken from globalState config)`);
   patchOfficialOverrides(extJs);
+
+  log(`patch auth session (treat BYOK official token as logged-in session)`);
+  patchByokAuthSession(extJs);
 
   log(`patch callApi/callApiStream shim`);
   patchCallApiShim(extJs);

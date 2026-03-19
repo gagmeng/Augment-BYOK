@@ -4,6 +4,7 @@ const { debug, warn } = require("../infra/log");
 const { normalizeString } = require("../infra/util");
 const { defaultConfig } = require("./default-config");
 const { normalizeConfig } = require("./normalize-config");
+const { syncByokAuthState } = require("../runtime/auth-session");
 
 const CONFIG_KEY = "augment-byok.config.v1";
 
@@ -50,6 +51,10 @@ class ConfigManager {
       this.lastGood = cfg;
       this.lastError = null;
 
+      try {
+        syncByokAuthState({ commands: this._ctx?.vscode?.commands || require("vscode").commands });
+      } catch {}
+
       debug(`config loaded (${reason})`);
       return { ok: true };
     } catch (err) {
@@ -68,6 +73,11 @@ class ConfigManager {
     this.current = cfg;
     this.lastGood = cfg;
     this.lastError = null;
+
+    try {
+      syncByokAuthState({ commands: require("vscode").commands });
+    } catch {}
+
     debug(`config saved (${normalizeString(reason) || "save"})`);
     return { ok: true, config: cfg };
   }

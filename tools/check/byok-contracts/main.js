@@ -27,6 +27,7 @@ function main(argv = process.argv) {
 
   const requiredRelFiles = [
     "out/byok/runtime/bootstrap/index.js",
+    "out/byok/runtime/auth-session.js",
     "out/byok/runtime/official/get-models.js",
     "out/byok/runtime/official/common.js",
     "out/byok/runtime/official/codebase-retrieval.js",
@@ -139,6 +140,7 @@ function main(argv = process.argv) {
   assertContains(extJs, "__augment_byok_expose_upstream_v1", "expose upstream (toolsModel) injected");
   assertContains(extJs, "__augment_byok_upstream.officialChatDelegation", "expose upstream (official chat delegation) injected");
   assertContains(extJs, "__augment_byok_official_overrides_patched_v1", "official overrides patched");
+  assertContains(extJs, "__augment_byok_auth_session_patched_v1", "auth session patched");
   assertContains(extJs, "__augment_byok_callapi_shim_patched_v1", "callApi shim patched");
   assertContains(extJs, "__augment_byok_model_picker_byok_only_v1", "model picker (BYOK-only) patched");
   assertContains(extJs, "__augment_byok_memories_upper_bound_size_patched_v1", "memories upper_bound_size patched");

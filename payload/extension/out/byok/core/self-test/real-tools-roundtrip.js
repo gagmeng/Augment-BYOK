@@ -39,12 +39,11 @@ async function realToolsToolRoundtripByProvider({ provider, model, toolDefinitio
   const emit = (line) => {
     try {
       if (typeof log === "function") log(String(line || ""));
-    } catch {}
+    } catch { }
   };
 
   const buildExampleArgsJson = (toolName, toolDef) => {
-    const rawSchema = shared.resolveToolSchema(toolDef);
-    const schema = providerType === "openai_responses" ? shared.coerceOpenAiStrictJsonSchema(rawSchema, 0) : rawSchema;
+    const schema = shared.resolveToolSchemaForTransport(toolDef);
     const sample = sampleJsonFromSchema(schema, 0);
     if (sample && typeof sample === "object" && !Array.isArray(sample)) {
       // 少量启发式：减少上游/网关对 format/pattern 的额外校验风险

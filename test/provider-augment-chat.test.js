@@ -34,11 +34,11 @@ test("provider-augment-chat: convertToolDefinitionsByProviderType returns provid
   assert.equal(responses.length, 2);
   assert.equal(responses[0].type, "function");
   assert.equal(responses[0].name, "echo");
-  assert.equal(responses[0].strict, true);
-  assert.equal(responses[0].parameters.additionalProperties, false);
+  assert.equal(responses[0].strict, false);
+  assert.ok(responses[0].parameters.additionalProperties == null || responses[0].parameters.additionalProperties === false);
   assert.ok(Array.isArray(responses[0].parameters.required));
   assert.ok(responses[0].parameters.required.includes("text"));
-  assert.deepEqual(responses[1].parameters.required, ["required", "optional"]);
+  assert.deepEqual(responses[1].parameters.required.slice().sort(), ["required"]);
 
   const anthropic = convertToolDefinitionsByProviderType("anthropic", toolDefs);
   assert.equal(anthropic.length, 2);

@@ -27,7 +27,7 @@
 ## Provider 支持（4 类）
 
 - `openai_compatible`：`POST {baseUrl}/chat/completions`（SSE）
-- `openai_responses`：`POST {baseUrl}/responses`（SSE，支持 `incomplete_details.reason`→`stop_reason`）
+- `openai_responses`：`POST {baseUrl}/responses`（SSE，支持 `incomplete_details.reason`→`stop_reason`；tools 使用 transport-sanitized schema + `strict:false`）
 - `anthropic`：`POST {baseUrl}/messages`（SSE）
 - `gemini_ai_studio`：`.../v1beta/models/<model>:streamGenerateContent?alt=sse`
 
@@ -412,7 +412,7 @@
 - [x] chat-stream：解析 responses SSE 并输出 Augment chunks（RAW_RESPONSE/THINKING/TOOL_USE/TOKEN_USAGE/final）
 - [x] `status=incomplete` + `incomplete_details.reason`：映射为 Augment stop_reason（`max_output_tokens`→MAX_TOKENS；`content_filter`→SAFETY；其余→UNSPECIFIED）
 - [x] 结束兜底：`response.completed`/final JSON 到来时补齐未完整输出的尾部文本（兼容部分网关缺失 done 事件）
-- [x] 工具 schema 严格化：补齐 `additionalProperties=false`；对象 schema 的 `required` 强制覆盖全部 `properties`（Responses 对 schema 更严格）
+- [x] 工具 schema 传输兼容化：对 OpenAI Responses tools 做 transport sanitize（剥离不兼容关键字、补齐必要结构），并使用 `strict:false`；保留原 schema 的 optional / required 业务语义，避免把“省略即默认”的参数误升为必填
 
 #### 8.4 `anthropic`（Anthropic Messages API 兼容）
 
@@ -504,7 +504,7 @@
 - [x] provider 连通性测试：models / complete / stream（按 providerId 逐个测）
 - [x] tool_definitions 捕获：优先用最近一次真实会话捕获；为空则尝试从上游 toolsModel 拉取“真实工具全集”
 - [-] 工具 schema 可采样性检查：确保能生成 sample（验证 schema 合法性/可 JSON 化）
-- [-] Responses strict schema 检查：确保 openai_responses 的工具 schema 满足严格约束（additionalProperties=false 等）
+- [-] Responses schema 兼容检查：确保 openai_responses 的工具 schema 满足当前 transport sanitize 约束（结构可传输、业务 required 不被污染）
 - [-] 真实工具 roundtrip：通过上游 toolsModel 做一次真实执行（会有副作用：文件/网络/浏览器等，按环境可用性决定）
 - [-] historySummary 自检：用可用 provider 生成一次摘要（验证触发/模板/注入链路）
 

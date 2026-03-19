@@ -13,7 +13,7 @@ const { selfTestHistorySummary } = require("./history-summary-test");
 const { convertToolDefinitionsByProviderType } = require("../provider-augment-chat");
 const { validateConvertedToolsForProvider } = require("./provider-io");
 
-function selfTestOpenAiResponsesStrictSchema(log) {
+function selfTestOpenAiResponsesSchemaCompatibility(log) {
   const defs = [
     {
       name: "schema_self_test",
@@ -31,9 +31,8 @@ function selfTestOpenAiResponsesStrictSchema(log) {
   const p0 = tools?.[0]?.parameters;
   const props = p0 && typeof p0 === "object" && p0.properties && typeof p0.properties === "object" ? Object.keys(p0.properties) : [];
   const req = Array.isArray(p0?.required) ? p0.required : [];
-  const missing = props.filter((k) => !req.includes(k));
-  const ok = p0 && p0.additionalProperties === false && Array.isArray(p0.required) && missing.length === 0;
-  log(`[responses strict schema] additionalProperties=${String(p0?.additionalProperties)} required_ok=${String(missing.length === 0)} props=${props.length}`);
+  const ok = p0 && (p0.additionalProperties == null || p0.additionalProperties === false) && req.includes("a") && !req.includes("insert_line_1");
+  log(`[responses schema] additionalProperties=${String(p0?.additionalProperties)} required=${req.length} props=${props.length}`);
   return ok;
 }
 
@@ -61,7 +60,7 @@ async function runSelfTest({ cfg, timeoutMs, abortSignal, providerKeys, onEvent 
   const emit = (ev) => {
     try {
       if (typeof onEvent === "function") onEvent(ev);
-    } catch {}
+    } catch { }
   };
   const log = (line) => emit({ type: "log", line: String(line || "") });
 
@@ -96,7 +95,7 @@ async function runSelfTest({ cfg, timeoutMs, abortSignal, providerKeys, onEvent 
           ...(convFromUpstream ? { conversationId: convFromUpstream } : {}),
           capturedBy: "self-test"
         });
-      } catch {}
+      } catch { }
       log(`[captured tools] fetched count=${toolDefsForSelfTest.length} via ${toolDefsSource}`);
     } else {
       const msg = localRes.ok ? normalizeString(localRes.res?.detail) || "empty tool list" : localRes.error;
@@ -150,27 +149,27 @@ async function runSelfTest({ cfg, timeoutMs, abortSignal, providerKeys, onEvent 
     report.global.tests.push({ name: "capturedToolsSchemaSamples", ok: true, detail: "skipped (no captured tools)" });
   }
 
-  const localSchemaOk = selfTestOpenAiResponsesStrictSchema(log);
-  report.global.tests.push({ name: "responsesStrictSchema", ok: Boolean(localSchemaOk) });
+  const localSchemaOk = selfTestOpenAiResponsesSchemaCompatibility(log);
+  report.global.tests.push({ name: "responsesSchema", ok: Boolean(localSchemaOk) });
   if (!localSchemaOk) report.ok = false;
 
   if (toolDefsForSelfTest.length) {
-    const strictCaptured = await withTimed(`${runLabel} responsesStrictSchema(capturedTools)`, async () => {
+    const capturedSchema = await withTimed(`${runLabel} responsesSchema(capturedTools)`, async () => {
       const tools = convertToolDefinitionsByProviderType("openai_responses", toolDefsForSelfTest);
       const v = validateConvertedToolsForProvider("openai_responses", tools);
       if (!v.ok) throw new Error(v.issues.slice(0, 10).join(" | "));
       return { tools: Array.isArray(tools) ? tools.length : 0 };
     });
-    if (strictCaptured.ok) {
-      report.global.tests.push({ name: "responsesStrictSchema(capturedTools)", ok: true, ms: strictCaptured.ms, detail: `tools=${strictCaptured.res?.tools ?? "?"}` });
-      log(`[responses strict schema][capturedTools] ok (${formatMs(strictCaptured.ms)}) tools=${strictCaptured.res?.tools ?? "?"}`);
+    if (capturedSchema.ok) {
+      report.global.tests.push({ name: "responsesSchema(capturedTools)", ok: true, ms: capturedSchema.ms, detail: `tools=${capturedSchema.res?.tools ?? "?"}` });
+      log(`[responses schema][capturedTools] ok (${formatMs(capturedSchema.ms)}) tools=${capturedSchema.res?.tools ?? "?"}`);
     } else {
-      report.global.tests.push({ name: "responsesStrictSchema(capturedTools)", ok: false, ms: strictCaptured.ms, detail: strictCaptured.error });
-      log(`[responses strict schema][capturedTools] FAIL (${formatMs(strictCaptured.ms)}) ${strictCaptured.error}`);
+      report.global.tests.push({ name: "responsesSchema(capturedTools)", ok: false, ms: capturedSchema.ms, detail: capturedSchema.error });
+      log(`[responses schema][capturedTools] FAIL (${formatMs(capturedSchema.ms)}) ${capturedSchema.error}`);
       report.ok = false;
     }
   } else {
-    report.global.tests.push({ name: "responsesStrictSchema(capturedTools)", ok: true, ms: 0, detail: "skipped (no captured tools)" });
+    report.global.tests.push({ name: "responsesSchema(capturedTools)", ok: true, ms: 0, detail: "skipped (no captured tools)" });
   }
 
   // 真实工具执行：对真实环境的 tools 做一次“真实执行”验证（通过上游 toolsModel；会产生一定副作用/访问网络/打开浏览器）

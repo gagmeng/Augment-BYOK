@@ -2,6 +2,7 @@
 
 const { info, warn } = require("../../infra/log");
 const { ensureConfigManager, state, setRuntimeEnabled, CONFIG_SYNC_KEYS, RUNTIME_ENABLED_KEY } = require("../../config/state");
+const { syncByokAuthState } = require("../auth-session");
 const { openConfigPanel } = require("../../ui/config-panel");
 const { exportConfigWithDialog, importConfigWithDialog, runIoWithUiErrorBoundary } = require("../../ui/config-io");
 const { clearHistorySummaryCacheAll, setHistorySummaryStorage } = require("../../core/augment-history-summary/auto");
@@ -47,6 +48,10 @@ function install({ vscode, getActivate, setActivate }) {
         warn("bootstrap: init default config failed:", err instanceof Error ? err.message : String(err));
       }
     }
+
+    try {
+      syncByokAuthState({ commands: vscode.commands });
+    } catch {}
 
     registerCommandsOnce(vscode, ctx, cfgMgr);
     return await origActivate(ctx);
