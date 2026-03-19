@@ -19,8 +19,7 @@ function patchTasklistAutoRoot(filePath) {
   // Newer upstream versions already auto-create task list roots on demand.
   // In that case, we only stamp the marker to satisfy contract checks.
   if (HAS_UPSTREAM_AUTO_TASKLIST_RE.test(next)) {
-    next = ensureMarker(next, MARKER);
-    fs.writeFileSync(filePath, next, "utf8");
+    savePatchText(filePath, next, { marker: MARKER });
     return { changed: true, reason: "upstream_has_auto_tasklist" };
   }
 
