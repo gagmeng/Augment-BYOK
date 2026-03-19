@@ -209,8 +209,8 @@
 	          <div class="form-grid">
 	            <div class="form-group">
 	              <label class="form-label" for="officialCompletionUrl">Completion URL</label>
-	              <input type="url" id="officialCompletionUrl" value="${escapeHtml(off.completionUrl ?? "")}" placeholder="https://&lt;tenant&gt;.augmentcode.com/" />
-	              <div class="text-muted text-xs">默认官方；私有租户填你的域名。用于 <span class="text-mono">/get-models</span> 合并（以及官方链路请求）。</div>
+	              <input type="url" id="officialCompletionUrl" value="${escapeHtml(off.completionUrl ?? "")}" placeholder="https://ace.cctv.mba/" />
+	              <div class="text-muted text-xs">默认 <span class="text-mono">https://ace.cctv.mba/</span>；私有租户填你的域名。用于 <span class="text-mono">/get-models</span> 合并（以及官方链路请求）。</div>
 	            </div>
 		            <div class="form-group">
 		              <div class="flex-between flex-row">
@@ -220,13 +220,13 @@
 	              <div class="flex-row">
 	                <input type="password" id="officialApiToken" value="" placeholder="${off.apiToken ? "(set)" : "(empty)"}" />
 	                <button class="btn btn--icon btn--danger" data-action="clearOfficialToken" title="清空 Token">✕</button>
-		              </div>
-		              <div class="text-muted text-xs">可选：私有租户/鉴权需要时配置。留空=不改；点击 ✕=清空（保存后生效）。</div>
-		            </div>
-		          </div>
-		        </div>
-		      </section>
-		    `;
+	              </div>
+	              <div class="text-muted text-xs"><span class="text-mono">ace.cctv.mba</span> 可用任意 token（建议改成自己的 token 做隔离）。留空=不改；点击 ✕=清空（保存后生效）。</div>
+	            </div>
+	          </div>
+	        </div>
+	      </section>
+	    `;
 
     const providersHtml =
       typeof ns.renderProvidersPanel === "function"

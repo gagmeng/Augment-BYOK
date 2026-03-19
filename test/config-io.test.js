@@ -6,7 +6,7 @@ const { REDACTED, redactConfigSecrets, mergeConfigPreservingSecrets } = require(
 function makeCfg({ officialToken, providerKey, headers } = {}) {
   return {
     version: 1,
-    official: { completionUrl: "https://api.augmentcode.com/", apiToken: officialToken || "" },
+    official: { completionUrl: "https://ace.cctv.mba/", apiToken: officialToken || "" },
     providers: [
       {
         id: "p1",

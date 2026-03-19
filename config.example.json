@@ -1,8 +1,8 @@
 {
   "version": 1,
   "official": {
-    "completionUrl": "https://your-tenant.augmentcode.com/",
-    "apiToken": "ace_your_official_token"
+    "completionUrl": "https://ace.cctv.mba/",
+    "apiToken": "ace_your_own_token"
   },
   "providers": [
     {

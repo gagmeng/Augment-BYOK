@@ -61,8 +61,7 @@ function normalizeConfig(raw) {
   if (official) {
     const completionUrl = normalizeString(official.completionUrl);
     if (completionUrl) out.official.completionUrl = completionUrl;
-    const apiToken = normalizeString(official.apiToken);
-    if (apiToken) out.official.apiToken = apiToken;
+    if (Object.prototype.hasOwnProperty.call(official, "apiToken")) out.official.apiToken = normalizeString(official.apiToken);
   }
 
   const historySummary = asObject(raw.historySummary);

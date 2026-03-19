@@ -211,8 +211,8 @@
 
 #### 4.4 Official 连接（用于：/get-models 合并；也可切私有租户）
 
-- [x] `official.completionUrl`：默认 `https://api.augmentcode.com/`（可切私有租户）
-- [-] `official.apiToken`：可空（缺 token 时：私有租户调用/官方上下文注入都会 skip；BYOK 主链路不受影响）
+- [x] `official.completionUrl`：默认 `https://ace.cctv.mba/`（可切私有租户）
+- [-] `official.apiToken`：默认内置占位 token（`ace.cctv.mba` 可用任意 token；建议改成自己的 token 做隔离；清空则会跳过官方上下文注入）
 
 #### 4.5 providers[]（BYOK 上游列表）
 

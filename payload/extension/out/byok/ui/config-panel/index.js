@@ -160,7 +160,7 @@ function createHandlers({ vscode, ctx, cfgMgr, state, panel }) {
       const requestId = normalizeString(msg?.requestId);
       const cfg = msg && typeof msg === "object" && msg.config && typeof msg.config === "object" ? msg.config : cfgMgr.get();
       const off = cfg?.official && typeof cfg.official === "object" ? cfg.official : {};
-      const completionUrl = normalizeString(off.completionUrl) || "https://api.augmentcode.com/";
+      const completionUrl = normalizeString(off.completionUrl) || "https://ace.cctv.mba/";
       const apiToken = normalizeRawToken(off.apiToken);
 
       try {

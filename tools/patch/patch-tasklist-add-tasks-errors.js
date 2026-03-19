@@ -39,8 +39,9 @@ function patchTasklistAddTasksErrors(filePath) {
         throw new Error("tasklist add_tasks errors: capture missing");
       }
 
-      // Error function is typically 'et' in minified code
-      const errFnVar = "et";
+      // Error function: try to extract from the match, fallback to 'et'
+      const errFnMatch = m[0].match(/return ([A-Za-z_$][\w$]*)\("No (?:root task|task list) found/);
+      const errFnVar = errFnMatch ? errFnMatch[1] : "et";
 
       // Find the old tail pattern in the match - handle whitespace between ; and return
       const oldTailRe = new RegExp(`let\\s+${textVar}=${formatterVar}\\.formatBulkUpdateResponse\\(${diffFnVar}\\(o,${hydratedVar}\\)\\);[\\s\\S]*?return\\s*\\{\\.\\.\\.${okFnVar}\\(${textVar}\\),plan:${hydratedVar}\\}`);

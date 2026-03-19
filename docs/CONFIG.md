@@ -5,7 +5,7 @@
 ## 快速开始（面板）
 
 1) 运行 `BYOK: Open Config Panel`  
-2) 填 `Official`：`completionUrl`（默认官方/可切私有租户）+ `apiToken`（可选：私有租户鉴权 / 官方上下文注入）  
+2) 填 `Official`：`completionUrl`（默认 `https://ace.cctv.mba/`；可切私有租户）+ `apiToken`（`ace.cctv.mba` 可用任意 token；建议改成自己的 token 做隔离；清空则跳过官方上下文注入）
 3) 至少配置 1 个 `providers[]`（`id/type/baseUrl/models/defaultModel`；Base URL 面板会按 type 自动填充默认值）  
 4) 可选：开启 `History Summary`（长对话自动压缩；默认关闭）  
    - 这里指“是否生成滚动摘要”的运行时配置；构建期的 `HISTORY_SUMMARY` 节点瘦身补丁始终开启，与该开关无关  

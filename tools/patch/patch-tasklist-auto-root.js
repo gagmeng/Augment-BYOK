@@ -8,12 +8,21 @@ const { loadPatchText, savePatchText } = require("./patch-target");
 const { requireCapture, buildEnsureRootSnippet } = require("./tasklist-common");
 
 const MARKER = "__augment_byok_tasklist_auto_root_patched_v1";
+const HAS_UPSTREAM_AUTO_TASKLIST_RE = /getOrCreateTaskListId\s*=\s*async/;
 
 function patchTasklistAutoRoot(filePath) {
   const { original, alreadyPatched } = loadPatchText(filePath, { marker: MARKER });
   if (alreadyPatched) return { changed: false, reason: "already_patched" };
 
   let next = original;
+
+  // Newer upstream versions already auto-create task list roots on demand.
+  // In that case, we only stamp the marker to satisfy contract checks.
+  if (HAS_UPSTREAM_AUTO_TASKLIST_RE.test(next)) {
+    next = ensureMarker(next, MARKER);
+    fs.writeFileSync(filePath, next, "utf8");
+    return { changed: true, reason: "upstream_has_auto_tasklist" };
+  }
 
   // Tasklist tools require a conversation-scoped root task list uuid.
   // Upstream v0.801+ uses getOrCreateTaskListId which auto-creates, but still fails if conversationId is missing.

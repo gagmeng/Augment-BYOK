@@ -6,8 +6,8 @@ function defaultConfig() {
   return {
     version: 1,
     official: {
-      completionUrl: "https://api.augmentcode.com/",
-      apiToken: ""
+      completionUrl: "https://ace.cctv.mba/",
+      apiToken: "ace_byokdefault0000000000"
     },
     historySummary: {
       enabled: false,
