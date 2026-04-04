@@ -15,7 +15,17 @@ function patchAugmentInterceptorInject(filePath, { injectPath }) {
   const code = readText(injectPath);
   assertContainsAll(code, ["Augment Interceptor Injection Start", "Augment Interceptor Injection End"], "inject-code unexpected");
 
-  let next = `${code}\n;\n${original}`;
+  // Bridge: the interceptor may replace module.exports with its own object.
+  // Save interceptor exports to global, then restore module.exports so upstream
+  // exports.xxx assignments work correctly.
+  const bridge = [
+    "// [BYOK] Restore module.exports after interceptor replacement",
+    "if(typeof module!=='undefined'&&typeof exports!=='undefined'&&module.exports!==exports){",
+    "  if(!global.__augment_interceptor_exports)global.__augment_interceptor_exports=module.exports;",
+    "  module.exports=exports;",
+    "}",
+  ].join("\n");
+  let next = `${code}\n;\n${bridge}\n;\n${original}`;
   next = ensureMarker(next, MARKER);
   writeText(filePath, next);
   return { changed: true, reason: "patched" };
