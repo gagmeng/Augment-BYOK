@@ -13,7 +13,7 @@ const PATCH_LABEL = "extension-client-context HISTORY_SUMMARY node slimming";
 function resolveHistorySummaryFormatter(src) {
   const s = String(src || "");
   const match = s.match(/function ([A-Za-z_$][0-9A-Za-z_$]*)\(e\)\{const t=e\.history_end\.map\(/);
-  if (!match) throw new Error("extension-client-context history summary formatter not found (upstream may have changed)");
+  if (!match) return null;
   return String(match[1] || "");
 }
 
@@ -28,6 +28,7 @@ function patchExtensionClientContextAsset(filePath) {
   // 这样：语义保持（模型仍拿到同样的 supervisor prompt），同时避免把 history_end 的巨型结构长期挂在 state 上。
   let out = original;
   const formatter = resolveHistorySummaryFormatter(out);
+  if (!formatter) return { changed: false, reason: "upstream_removed" };
 
   // latest-only：直接改 buildHistorySummaryNode 的返回值。
   const summaryNodeRe = /return\{id:([^,{}]+),type:([A-Za-z_$][0-9A-Za-z_$]*)\.HISTORY_SUMMARY,history_summary_node:([A-Za-z_$][0-9A-Za-z_$]*)\}/g;

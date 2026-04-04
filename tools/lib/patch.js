@@ -132,8 +132,11 @@ function findExportedFactoryVar(src, exportName) {
   const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   const re = new RegExp(`["']?${escaped}["']?\\s*:\\s*\\(\\)\\s*=>\\s*([A-Za-z0-9_$]+)`);
   const match = String(src || "").match(re);
-  if (!match) throw new Error(`failed to locate exported ${name} var (pattern: ${name}:()=>VAR)`);
-  return match[1];
+  if (match) return match[1];
+  const re2 = new RegExp(`exports\\.${escaped}\\s*=\\s*([A-Za-z0-9_$]+)`);
+  const match2 = String(src || "").match(re2);
+  if (match2) return match2[1];
+  throw new Error(`failed to locate exported ${name} var (pattern: ${name}:()=>VAR or exports.${name}=VAR)`);
 }
 
 function findMatchingParen(src, openParenIdx) {

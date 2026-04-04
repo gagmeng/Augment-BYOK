@@ -19,47 +19,77 @@ function patchTasklistAddTasksErrors(filePath) {
 
   let next = original;
 
-  // Upstream add_tasks swallows per-task creation errors inside handleBatchCreation and returns
-  // "Created: 0, Updated: 0, Deleted: 0" with no error details.
-  // Patch: if any tasks fail, append failure summary; if all fail, return isError=true with details.
-  // Updated for v0.801+: new pattern with getOrCreateTaskListId, simpler return structure
-  // Match: handleBatchCreation with let s=[] results array and formatBulkUpdateResponse return
-  next = replaceOnceRegex(
-    next,
-    /async handleBatchCreation\([^)]+\)\{[\s\S]*?let\s+([A-Za-z_$][\w$]*)=\[\];[\s\S]*?let\s+([A-Za-z_$][\w$]*)=([A-Za-z_$][\w$]*)\.formatBulkUpdateResponse\(([A-Za-z_$][\w$]*)\([A-Za-z_$][\w$]*,([A-Za-z_$][\w$]*)\)\);[\s\S]*?return\s*\{\.\.\.([A-Za-z_$][\w$]*)\([A-Za-z_$][\w$]*\),plan:[A-Za-z_$][\w$]*\}/g,
-    (m) => {
-      const resultsVar = String(m[1] || "");
-      const textVar = String(m[2] || "");
-      const formatterVar = String(m[3] || "");
-      const diffFnVar = String(m[4] || "");
-      const hydratedVar = String(m[5] || "");
-      const okFnVar = String(m[6] || "");
+  // Match handleBatchCreation: supports both old (separate let) and new (inlined ternary) patterns.
+  // New upstream inlines formatBulkUpdateResponse in a ternary return:
+  //   return HYDRATED?{...OK(FORMATTER.formatBulkUpdateResponse(DIFF(BEFORE,HYDRATED))),plan:HYDRATED}:ERR("...")
+  const reInlined = /async handleBatchCreation\([^)]+\)\{[\s\S]*?(?:let|const)\s+([A-Za-z_$][\w$]*)=\[\];[\s\S]*?return\s+([A-Za-z_$][\w$]*)\?\{\.\.\.([A-Za-z_$][\w$]*)\(([A-Za-z_$][\w$]*)\.formatBulkUpdateResponse\(([A-Za-z_$][\w$]*)\(([A-Za-z_$][\w$]*),\2\)\)\),plan:\2\}:([A-Za-z_$][\w$]*)\([^)]*\)/g;
 
-      if (!resultsVar || !textVar || !formatterVar || !diffFnVar || !okFnVar) {
-        throw new Error("tasklist add_tasks errors: capture missing");
-      }
+  const reOld = /async handleBatchCreation\([^)]+\)\{[\s\S]*?(?:let|const)\s+([A-Za-z_$][\w$]*)=\[\];[\s\S]*?let\s+([A-Za-z_$][\w$]*)=([A-Za-z_$][\w$]*)\.formatBulkUpdateResponse\(([A-Za-z_$][\w$]*)\([A-Za-z_$][\w$]*,([A-Za-z_$][\w$]*)\)\);[\s\S]*?return\s*\{\.\.\.([A-Za-z_$][\w$]*)\([A-Za-z_$][\w$]*\),plan:[A-Za-z_$][\w$]*\}/g;
 
-      // Error function: try to extract from the match, fallback to 'et'
-      const errFnMatch = m[0].match(/return ([A-Za-z_$][\w$]*)\("No (?:root task|task list) found/);
-      const errFnVar = errFnMatch ? errFnMatch[1] : "et";
+  const inlinedMatch = Array.from(original.matchAll(reInlined));
+  const oldMatch = Array.from(original.matchAll(reOld));
 
-      // Find the old tail pattern in the match - handle whitespace between ; and return
-      const oldTailRe = new RegExp(`let\\s+${textVar}=${formatterVar}\\.formatBulkUpdateResponse\\(${diffFnVar}\\(o,${hydratedVar}\\)\\);[\\s\\S]*?return\\s*\\{\\.\\.\\.${okFnVar}\\(${textVar}\\),plan:${hydratedVar}\\}`);
-      const oldMatch = m[0].match(oldTailRe);
-      if (!oldMatch) throw new Error("tasklist add_tasks errors: tail not found (upstream may have changed)");
-      
-      const insertion = buildTaskFailuresSummarySnippet({
-        resultsVar,
-        errorFnVar: errFnVar,
-        textVar,
-        planVar: hydratedVar
-      });
+  if (inlinedMatch.length > 0) {
+    // New inlined pattern
+    const m = inlinedMatch[0];
+    const resultsVar = m[1];
+    const hydratedVar = m[2];
+    const okFnVar = m[3];
+    const formatterVar = m[4];
+    const diffFnVar = m[5];
+    const beforeVar = m[6];
+    const errFnVar = m[7];
 
-      const newTail = `let ${textVar}=${formatterVar}.formatBulkUpdateResponse(${diffFnVar}(o,${hydratedVar}));${insertion}return{...${okFnVar}(${textVar}),plan:${hydratedVar}}`;
-      return m[0].replace(oldMatch[0], newTail);
-    },
-    "tasklist add_tasks errors: handleBatchCreation"
-  );
+    const insertion = buildTaskFailuresSummarySnippet({
+      resultsVar,
+      errorFnVar: errFnVar,
+      textVar: "__byok_text",
+      planVar: hydratedVar
+    });
+
+    // Replace the inlined return with: extract text var, insert error check, then return
+    const oldReturn = `return ${hydratedVar}?{...${okFnVar}(${formatterVar}.formatBulkUpdateResponse(${diffFnVar}(${beforeVar},${hydratedVar}))),plan:${hydratedVar}}:${errFnVar}`;
+    const oldReturnIdx = m[0].lastIndexOf("return " + hydratedVar + "?");
+    const oldReturnStr = m[0].substring(oldReturnIdx);
+
+    const newReturn = `let __byok_text=${formatterVar}.formatBulkUpdateResponse(${diffFnVar}(${beforeVar},${hydratedVar}));${insertion}return ${hydratedVar}?{...${okFnVar}(__byok_text),plan:${hydratedVar}}:${errFnVar}`;
+
+    // Find the return tail in original and replace
+    const returnTailRe = new RegExp(
+      "return\\s+" + escapeRegExp(hydratedVar) + "\\?\\{\\.\\.\\." + escapeRegExp(okFnVar) + "\\(" +
+      escapeRegExp(formatterVar) + "\\.formatBulkUpdateResponse\\(" + escapeRegExp(diffFnVar) + "\\(" +
+      escapeRegExp(beforeVar) + "," + escapeRegExp(hydratedVar) + "\\)\\)\\),plan:" +
+      escapeRegExp(hydratedVar) + "\\}:" + escapeRegExp(errFnVar) + "\\([^)]*\\)"
+    );
+    const tailMatch = next.match(returnTailRe);
+    if (!tailMatch) throw new Error("tasklist add_tasks errors: inlined return tail not found");
+
+    const newTail = `let __byok_text=${formatterVar}.formatBulkUpdateResponse(${diffFnVar}(${beforeVar},${hydratedVar}));${insertion}return ${hydratedVar}?{...${okFnVar}(__byok_text),plan:${hydratedVar}}:${errFnVar}(${tailMatch[0].match(/:([A-Za-z_$][\w$]*)\(([^)]*)\)$/)[2]})`;
+    next = next.replace(tailMatch[0], newTail);
+
+  } else if (oldMatch.length > 0) {
+    // Old separate-let pattern (backward compat)
+    const m = oldMatch[0];
+    const resultsVar = m[1], textVar = m[2], formatterVar = m[3];
+    const diffFnVar = m[4], hydratedVar = m[5], okFnVar = m[6];
+    const errFnMatch = m[0].match(/return ([A-Za-z_$][\w$]*)\("No (?:root task|task list) found/);
+    const errFnVar = errFnMatch ? errFnMatch[1] : "et";
+
+    const oldTailRe = new RegExp(
+      "let\\s+" + textVar + "=" + formatterVar + "\\.formatBulkUpdateResponse\\(" +
+      diffFnVar + "\\(o," + hydratedVar + "\\)\\);[\\s\\S]*?return\\s*\\{\\.\\.\\."
+      + okFnVar + "\\(" + textVar + "\\),plan:" + hydratedVar + "\\}"
+    );
+    const tailM = m[0].match(oldTailRe);
+    if (!tailM) throw new Error("tasklist add_tasks errors: old tail not found");
+
+    const insertion = buildTaskFailuresSummarySnippet({ resultsVar, errorFnVar: errFnVar, textVar, planVar: hydratedVar });
+    const newTail = `let ${textVar}=${formatterVar}.formatBulkUpdateResponse(${diffFnVar}(o,${hydratedVar}));${insertion}return{...${okFnVar}(${textVar}),plan:${hydratedVar}}`;
+    next = next.replace(tailM[0], newTail);
+
+  } else {
+    throw new Error("tasklist add_tasks errors: handleBatchCreation needle not found (upstream may have changed)");
+  }
 
   savePatchText(filePath, next, { marker: MARKER });
   return { changed: true, reason: "patched" };

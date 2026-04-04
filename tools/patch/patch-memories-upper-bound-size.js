@@ -21,6 +21,9 @@ function patchMemoriesUpperBoundSize(filePath, { defaultUpperBoundSize = 10000 }
   // Patch: add a safe default upper_bound_size if missing.
   const re = /let\s+([A-Za-z_$][0-9A-Za-z_$]*)=([A-Za-z_$][0-9A-Za-z_$]*)\(\)\.flags\.memoriesParams\.upper_bound_size;/g;
 
+  const testMatch = original.match(re);
+  if (!testMatch) return { changed: false, reason: "upstream_removed" };
+
   let next = replaceOnceRegex(
     original,
     re,
