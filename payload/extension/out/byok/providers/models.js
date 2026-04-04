@@ -127,6 +127,11 @@ async function fetchProviderModels({ provider, timeoutMs, abortSignal }) {
   const providerId = normalizeString(provider.id);
   const label = `models type=${type || "?"}${providerId ? ` id=${providerId}` : ""}`;
 
+  const staticModels = normalizeStringList(
+    Array.isArray(provider.models) ? provider.models : typeof provider.models === "string" ? [provider.models] : [],
+    { maxItems: 5000 }
+  );
+
   const t = Number.isFinite(Number(timeoutMs)) && Number(timeoutMs) > 0 ? Number(timeoutMs) : 15000;
   const t0 = nowMs();
   try {
@@ -139,6 +144,10 @@ async function fetchProviderModels({ provider, timeoutMs, abortSignal }) {
     debug(`[${label}] ok (${formatMs(nowMs() - t0)}) baseUrl=${baseUrlForLog(baseUrl)} models=${models.length}`);
     return models;
   } catch (err) {
+    if (staticModels.length > 0) {
+      debug(`[${label}] upstream /models unavailable, fallback to static models list (${staticModels.length}): ${err instanceof Error ? err.message : String(err)}`);
+      return staticModels;
+    }
     const msg = err instanceof Error ? err.message : String(err);
     debug(`[${label}] FAIL (${formatMs(nowMs() - t0)}) baseUrl=${baseUrlForLog(baseUrl)}: ${msg}`);
     throw err;
