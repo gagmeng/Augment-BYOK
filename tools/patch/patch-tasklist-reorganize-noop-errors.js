@@ -17,7 +17,7 @@ function patchTasklistReorganizeNoopErrors(filePath) {
 
   next = replaceOnceRegex(
     next,
-    /(let\s+([A-Za-z_$][\w$]*)=r\.markdown;if\(!\2\)return\s+([A-Za-z_$][\w$]*)\("No markdown provided\."\);[\s\S]*?)(if\(!([A-Za-z_$][\w$]*)\)return\s+\3\("Failed to retrieve updated task tree(?: after reorganization)?\."\);\s*let\s+([A-Za-z_$][\w$]*)=([A-Za-z_$][\w$]*)\.formatBulkUpdateResponse\(([A-Za-z_$][\w$]*)\(([A-Za-z_$][\w$]*),([A-Za-z_$][\w$]*)\)\);\s*return\s*((?:[A-Za-z_$][\w$]*&&[A-Za-z_$][\w$]*\([A-Za-z_$][\w$]*\),)?)\{\.\.\.([A-Za-z_$][\w$]*)\(\6\),plan:\5\})/g,
+    /(let\s+([A-Za-z_$][\w$]*)=r\.markdown;if\(!\2\)return\s+([A-Za-z_$][\w$]*)\("No markdown provided\."\);[\s\S]*?)(if\(!([A-Za-z_$][\w$]*)\)return\s+\3\("Failed to retrieve updated task tree(?: after reorganization)?\."\);\s*let\s+([A-Za-z_$][\w$]*)=([A-Za-z_$][\w$]*)\.formatBulkUpdateResponse\(([A-Za-z_$][\w$]*)\(([A-Za-z_$][\w$]*),([A-Za-z_$][\w$]*)\)\);\s*return\s*((?:[A-Za-z_$][\w$]*&&[A-Za-z_$][\w$]*\([^)]*\),)?)\{\.\.\.([A-Za-z_$][\w$]*)\(\6\),plan:\5\})/g,
     (m) => {
       const label = "tasklist reorganize noop errors";
       const prefixBlock = requireCapture(m, 1, `${label} prefixBlock`);

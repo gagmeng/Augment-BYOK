@@ -1,11 +1,11 @@
 {
   "upstream": {
-    "version": "0.814.0",
+    "version": "0.825.7",
     "url": "https://marketplace.visualstudio.com/_apis/public/gallery/publishers/augment/vsextensions/vscode-augment/latest/vspackage",
-    "sha256": "c405bc29fa33319938b8ea2ded5253cba14e417191df9db88b1c74691cad2cd7"
+    "sha256": "c94fea09e346bad083995736c33af577773a9ef9d1c5740e5ba6c7449e3833b8"
   },
   "interceptorInject": {
-    "file": "vendor/augment-interceptor/inject-code.augment-interceptor.v1.2.txt",
-    "sha256": "b62ec7971f169d4a4d886bcde85aec14ba5f055a143705ca53390fa05df6d145"
+    "file": "vendor\\augment-interceptor\\inject-code.augment-interceptor.v1.2.txt",
+    "sha256": "aee33df3007db71c50174cd796a750ae0dd999fa02db84e2c38f192a69d2dec0"
   }
 }
