@@ -114,13 +114,13 @@
 	      <section class="settings-panel">
 	        <header class="settings-panel__header">
 	          <div class="flex-row flex-wrap">
-	            <span>Self Test</span>
+	            <svg class="section-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg> <span class="section-title">Self Test</span>
 	            ${stRunning ? `<span class="status-badge status-badge--warning">running</span>` : stReport ? (stReport.ok === true ? `<span class="status-badge status-badge--success">ok</span>` : `<span class="status-badge status-badge--error">failed</span>`) : ""}
 	          </div>
 	          <div class="flex-row flex-wrap">
-	            <button class="btn btn--small btn--primary" data-action="runSelfTest" ${stRunning ? "disabled" : ""}>Run</button>
-	            <button class="btn btn--small" data-action="cancelSelfTest" ${stRunning ? "" : "disabled"}>Cancel</button>
-	            <button class="btn btn--small" data-action="clearSelfTest" ${stRunning ? "disabled" : ""}>Clear</button>
+	            <button class="btn btn--small btn--primary" data-action="runSelfTest" ${stRunning ? "disabled" : ""}><svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>Run</button>
+	            <button class="btn btn--small btn--danger" data-action="cancelSelfTest" ${stRunning ? "" : "disabled"}><svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>Cancel</button>
+	            <button class="btn btn--small btn--teal" data-action="clearSelfTest" ${stRunning ? "disabled" : ""}><svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 20H7L3 16a1 1 0 010-1.41l9.59-9.59a2 2 0 012.82 0L21 10.59a2 2 0 010 2.82L13 21"/></svg>Clear</button>
 	          </div>
 	        </header>
 	        <div class="settings-panel__body">
@@ -133,8 +133,8 @@
 	                <div class="text-muted text-xs">提示：不选=全部。</div>
 	              </div>
 	              <div class="flex-row flex-wrap row tight">
-	                <button class="btn btn--small" data-action="selfTestSelectAllProviders" ${stRunning || !providers.length ? "disabled" : ""}>全选</button>
-	                <button class="btn btn--small" data-action="selfTestClearSelectedProviders" ${stRunning ? "disabled" : ""}>清空</button>
+	                <button class="btn btn--small btn--info" data-action="selfTestSelectAllProviders" ${stRunning || !providers.length ? "disabled" : ""}><svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6L7 17l-5-5"/><path d="M22 10l-7.5 7.5L13 16"/></svg>全选</button>
+	                <button class="btn btn--small btn--purple" data-action="selfTestClearSelectedProviders" ${stRunning ? "disabled" : ""}><svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/></svg>清空</button>
 	                <span class="text-muted text-xs">${escapeHtml(stProviderKeys.length ? `selected=${stProviderKeys.length}` : `selected=all (${providers.length})`)}</span>
 	              </div>
 	              ${summarizeSelfTestReport()}
@@ -165,16 +165,32 @@
 	          <div class="text-muted text-xs">提示：保存后生效；刷新会丢弃未保存修改。</div>
 	        </div>
 	        <div class="header-actions flex-row flex-wrap">
+	          <div class="theme-selector-wrap">
+	            <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="13.5" cy="6.5" r="0.5" fill="currentColor"/><circle cx="17.5" cy="10.5" r="0.5" fill="currentColor"/><circle cx="8.5" cy="7.5" r="0.5" fill="currentColor"/><circle cx="6.5" cy="12" r="0.5" fill="currentColor"/><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 011.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z"/></svg>
+	            <span class="theme-selector-label">Theme</span>
+	            <select id="themeSelect">
+	              <option value="default">VS Code</option>
+	              <option value="cyberpunk">Cyberpunk</option>
+	              <option value="aurora">Aurora</option>
+	              <option value="sunset">Sunset</option>
+	              <option value="sakura">Sakura</option>
+	              <option value="arctic">Arctic</option>
+	              <option value="monokai">Monokai</option>
+	              <option value="dracula">Dracula</option>
+	              <option value="nord">Nord</option>
+	              <option value="solarized">Solarized</option>
+	            </select>
+	          </div>
 	          <label class="checkbox-wrapper" title="开启或关闭 BYOK 运行时（关闭=回滚到官方）">
 	            <input type="checkbox" id="runtimeEnabledToggle" ${runtimeEnabledFlag ? "checked" : ""} />
 	            <span>启用 BYOK</span>
 	          </label>
-	          <button class="btn btn--small" data-action="importConfig" title="从 JSON 文件导入配置（会覆盖当前配置）">导入</button>
-	          <button class="btn btn--small" data-action="exportConfig" title="导出当前配置到 JSON 文件（可选择是否包含密钥）">导出</button>
-	          <button class="btn btn--small" data-action="reload" title="重新加载配置（丢弃未保存修改）">刷新</button>
-	          <button class="btn btn--small btn--primary" data-action="save" title="保存配置到 extension storage">保存</button>
-	          <button class="btn btn--small" data-action="reset" title="重置为默认配置（会清空已存储的 token/key）">重置</button>
-	          <button class="btn btn--small" data-action="reloadWindow" title="重载 VS Code 窗口（会重载插件与主面板）">重载</button>
+	          <button class="btn btn--small btn--info" data-action="importConfig" title="从 JSON 文件导入配置（会覆盖当前配置）"><svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>导入</button>
+	          <button class="btn btn--small btn--teal" data-action="exportConfig" title="导出当前配置到 JSON 文件（可选择是否包含密钥）"><svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>导出</button>
+	          <button class="btn btn--small btn--purple" data-action="reload" title="重新加载配置（丢弃未保存修改）"><svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>刷新</button>
+	          <button class="btn btn--small btn--primary" data-action="save" title="保存配置到 extension storage"><svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>保存</button>
+	          <button class="btn btn--small btn--warning" data-action="reset" title="重置为默认配置（会清空已存储的 token/key）"><svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 019-9 9.75 9.75 0 016.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 01-9 9 9.75 9.75 0 01-6.74-2.74L3 16"/><path d="M3 21v-5h5"/></svg>重置</button>
+	          <button class="btn btn--small btn--pink" data-action="reloadWindow" title="重载 VS Code 窗口（会重载插件与主面板）"><svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 2v6h-6"/><path d="M2.5 22v-6h6"/><path d="M2 11.5a10 10 0 0118.8-4.3L21.5 8"/><path d="M22 12.5a10 10 0 01-18.8 4.3L2.5 16"/></svg>重载</button>
 	        </div>
 	      </header>
 	    `;
@@ -194,13 +210,13 @@
 	      <section class="settings-panel">
 		        <header class="settings-panel__header">
 		          <div class="flex-row flex-wrap">
-		            <span>Official</span>
+		            <svg class="section-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="8" rx="2" ry="2"/><rect x="2" y="14" width="20" height="8" rx="2" ry="2"/><line x1="6" y1="6" x2="6.01" y2="6"/><line x1="6" y1="18" x2="6.01" y2="18"/></svg> <span class="section-title">Official</span>
 		            ${completionUrlBadge}
 		            ${tokenBadge}
 		            ${officialAssemblerBadge}
 		          </div>
 	          <div class="flex-row" style="min-width:0;">
-	            <button class="btn btn--small" data-action="testOfficialGetModels" ${otRunning ? "disabled" : ""} title="/get-models">测试连接</button>
+	            <button class="btn btn--small btn--success" data-action="testOfficialGetModels" ${otRunning ? "disabled" : ""} title="/get-models"><svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>测试连接</button>
 	            ${otBadge}
 	            ${otTextHtml}
 	          </div>
@@ -257,8 +273,8 @@
                   <div class="title">Reset to defaults?</div>
                   <div class="hint">这会覆盖存储在 extension globalState 里的 BYOK 配置（token/key 也会被清空）。</div>
                   <div class="row" style="margin-top:10px;justify-content:flex-end;">
-                    <button class="btn" data-action="modalCancel">Cancel</button>
-                    <button class="btn danger" data-action="confirmReset">Reset</button>
+                    <button class="btn" data-action="modalCancel"><svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>Cancel</button>
+                    <button class="btn danger" data-action="confirmReset"><svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 019-9 9.75 9.75 0 016.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 01-9 9 9.75 9.75 0 01-6.74-2.74L3 16"/><path d="M3 21v-5h5"/></svg>Reset</button>
                   </div>
                 </div>
               </div>
@@ -285,8 +301,8 @@
                   <div class="hint">${escapeHtml(hint)}</div>
                   <textarea class="mono" id="modalText" style="min-height:240px;">${escapeHtml(text)}</textarea>
                   <div class="row" style="margin-top:10px;justify-content:flex-end;">
-                    <button class="btn" data-action="modalCancel">Cancel</button>
-                    <button class="btn primary" data-action="modalApply">Apply</button>
+                    <button class="btn" data-action="modalCancel"><svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>Cancel</button>
+                    <button class="btn primary" data-action="modalApply"><svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>Apply</button>
                   </div>
                 </div>
               </div>

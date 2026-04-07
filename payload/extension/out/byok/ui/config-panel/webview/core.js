@@ -65,6 +65,7 @@
     persisted && typeof persisted === "object" && Array.isArray(persisted.selfTestProviderKeys)
       ? uniq(persisted.selfTestProviderKeys.map((k) => normalizeStr(k)).filter(Boolean))
       : [];
+  const persistedTheme = persisted && typeof persisted === "object" ? normalizeStr(persisted.theme) : "";
 
   let uiState = {
     cfg: {},
@@ -77,7 +78,8 @@
     dirty: false,
     selfTest: { running: false, logs: [], report: null },
     selfTestProviderKeys: persistedSelfTestProviderKeys,
-    endpointSearch: persistedEndpointSearch
+    endpointSearch: persistedEndpointSearch,
+    theme: persistedTheme || "default"
   };
 
   function updateDirtyBadge() {
@@ -154,6 +156,12 @@
       () => {
         const app = qs("#app");
         if (app) app.innerHTML = renderApp(uiState);
+
+        // Apply theme
+        const themeVal = normalizeStr(uiState.theme) || "default";
+        document.body.setAttribute("data-theme", themeVal);
+        const tsel = qs("#themeSelect");
+        if (tsel && tsel.value !== themeVal) tsel.value = themeVal;
 
         applyEndpointFilter();
       },

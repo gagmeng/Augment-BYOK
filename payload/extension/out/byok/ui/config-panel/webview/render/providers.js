@@ -111,8 +111,8 @@
                   ${baseUrl ? `<span class="text-muted text-xs text-mono">${escapeHtml(baseUrl)}</span>` : `<span class="text-muted text-xs">baseUrl: (empty)</span>`}
                 </div>
                 <div class="flex-row flex-wrap">
-                  <button class="btn btn--small" data-action="makeProviderDefault" data-idx="${idx}" ${idx === 0 ? "disabled" : ""}>设为默认</button>
-                  <button class="btn btn--small btn--danger" data-action="removeProvider" data-idx="${idx}">删除</button>
+                  <button class="btn btn--small btn--success" data-action="makeProviderDefault" data-idx="${idx}" ${idx === 0 ? "disabled" : ""}><svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>设为默认</button>
+                  <button class="btn btn--small btn--danger" data-action="removeProvider" data-idx="${idx}"><svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>删除</button>
                 </div>
               </div>
               <div class="provider-card__content-wrapper">
@@ -135,7 +135,7 @@
                       <div class="form-group form-grid--full">
                         <div class="flex-between flex-row">
                           <label class="form-label">Base URL</label>
-                          <button class="btn btn--small" data-action="setProviderBaseUrlDefault" data-idx="${idx}" title="使用该 Type 的默认 Base URL">默认</button>
+                          <button class="btn btn--small btn--purple" data-action="setProviderBaseUrlDefault" data-idx="${idx}" title="使用该 Type 的默认 Base URL"><svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 019-9 9.75 9.75 0 016.74 2.74L21 8"/><path d="M21 3v5h-5"/></svg>默认</button>
                         </div>
                         <input type="url" class="${baseUrlIssue.inputCls}" data-p-idx="${idx}" data-p-key="baseUrl" value="${escapeHtml(baseUrl)}" placeholder="${escapeHtml(baseUrlPlaceholder)}" />
                         <div class="${baseUrlIssue.cls}" data-provider-idx="${idx}" data-provider-issue-for="baseUrl">${escapeHtml(baseUrlIssue.text)}</div>
@@ -155,8 +155,8 @@
                         <label class="form-label">Models</label>
                         <div class="flex-row flex-wrap">
                           <span class="status-badge">${escapeHtml(String(models.length))}</span>
-                          <button class="btn btn--small" data-action="fetchProviderModels" data-idx="${idx}">拉取</button>
-                          <button class="btn btn--small" data-action="editProviderModels" data-idx="${idx}">编辑</button>
+                          <button class="btn btn--small btn--teal" data-action="fetchProviderModels" data-idx="${idx}"><svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/></svg>拉取</button>
+                          <button class="btn btn--small btn--info" data-action="editProviderModels" data-idx="${idx}"><svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>编辑</button>
                         </div>
                         <div class="${modelsIssue.cls}" data-provider-idx="${idx}" data-provider-issue-for="models">${escapeHtml(modelsIssue.text)}</div>
                       </div>
@@ -182,8 +182,8 @@
                       <div class="form-group form-grid--full">
                         <label class="form-label">Advanced</label>
                         <div class="flex-row flex-wrap">
-                          <button class="btn btn--small" data-action="editProviderHeaders" data-idx="${idx}">Headers</button>
-                          <button class="btn btn--small" data-action="editProviderRequestDefaults" data-idx="${idx}">Defaults</button>
+                          <button class="btn btn--small btn--pink" data-action="editProviderHeaders" data-idx="${idx}"><svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="3" y1="9" x2="21" y2="9"/></svg>Headers</button>
+                          <button class="btn btn--small btn--purple" data-action="editProviderRequestDefaults" data-idx="${idx}"><svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>Defaults</button>
                         </div>
                       </div>
                     </div>
@@ -198,9 +198,9 @@
     return `
         <section class="settings-panel">
           <header class="settings-panel__header">
-            <span>Providers</span>
+            <div class="flex-row"><svg class="section-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg> <span class="section-title">Providers</span></div>
             <div class="flex-row flex-wrap">
-              <button class="btn btn--small btn--primary" data-action="addProvider">+ 新增 Provider</button>
+              <button class="btn btn--small btn--primary" data-action="addProvider"><svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>新增 Provider</button>
             </div>
           </header>
           <div class="settings-panel__body">

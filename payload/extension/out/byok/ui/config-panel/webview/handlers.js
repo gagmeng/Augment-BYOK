@@ -359,6 +359,14 @@
     if (el.matches("[data-p-key=\"defaultModel\"],[data-p-key=\"thinkingLevel\"]")) return setUiState({ status: "Provider updated (pending save).", dirty: true }, { preserveEdits: true });
     if (el.matches("#historySummaryEnabled,#historySummaryByokModel,#historySummaryRollingSummary,#historySummaryTriggerStrategy"))
       return markDirty("History summary updated (pending save).");
+    if (el.matches("#themeSelect")) {
+      const theme = normalizeStr(el.value) || "default";
+      document.body.setAttribute("data-theme", theme);
+      setPersistedState({ theme });
+      const st = getUiState();
+      st.theme = theme;
+      return;
+    }
   }
 
   function handleInput(el) {

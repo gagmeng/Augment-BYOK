@@ -54,7 +54,7 @@
     return `
 	      <section class="settings-panel">
 	        <header class="settings-panel__header">
-	          <span>History Summary</span>
+	          <div class="flex-row"><svg class="section-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> <span class="section-title">History Summary</span></div>
 	          ${hsEnabled ? `<span class="status-badge status-badge--success">enabled</span>` : `<span class="status-badge status-badge--warning">disabled</span>`}
 	        </header>
 	        <div class="settings-panel__body">
@@ -83,11 +83,11 @@
 	              <div class="text-muted text-xs">留空则跟随当前请求模型（仅用于“生成摘要”）；触发窗口判断始终基于当前对话模型。</div>
 	            </div>
 	            <div class="form-group form-grid--full">
-	              <div class="flex-row flex-wrap"><button class="btn btn--small" data-action="clearHistorySummaryCache">清理摘要缓存</button><span class="text-muted text-xs">仅清理后台摘要复用缓存，不影响 UI 历史显示。</span></div>
+	              <div class="flex-row flex-wrap"><button class="btn btn--small btn--warning" data-action="clearHistorySummaryCache"><svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>清理摘要缓存</button><span class="text-muted text-xs">仅清理后台摘要复用缓存，不影响 UI 历史显示。</span></div>
 	            </div>
 	            <div class="form-group form-grid--full">
 	              <details class="endpoint-group">
-	                <summary class="endpoint-group-summary"><span>Advanced</span><span class="row" style="gap:6px;"><span class="badge">trigger</span><span class="badge">tail</span><span class="badge">cache</span><span class="badge">window</span><span class="badge">prompt</span></span></summary>
+	                <summary class="endpoint-group-summary"><span>Advanced</span><span class="row" style="gap:6px;"><span class="badge badge--accent">trigger</span><span class="badge badge--teal">tail</span><span class="badge badge--purple">cache</span><span class="badge badge--info">window</span><span class="badge badge--pink">prompt</span></span></summary>
 	                <div class="endpoint-group-body">
 	                  <div class="text-muted text-xs">高级参数可选；留空会回落默认值。内置已覆盖常见编程模型（Claude4/GPT5/Gemini/Kimi）。</div>
 	                  <div style="height:10px;"></div>

@@ -134,7 +134,7 @@
     return `
 	      <section class="settings-panel">
 	        <header class="settings-panel__header">
-	          <span>Endpoint Rules</span>
+	          <div class="flex-row"><svg class="section-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg> <span class="section-title">Endpoint Rules</span></div>
 	          <span class="status-badge">${escapeHtml(String(knownEndpoints.length))} endpoints</span>
 	        </header>
 	        <div class="settings-panel__body">
