@@ -1,11 +1,12 @@
 #!/usr/bin/env node
 "use strict";
 
+const fs = require("fs");
 const path = require("path");
 
 const { replaceOnceRegex } = require("../lib/patch");
 const { loadPatchText, savePatchText } = require("./patch-target");
-const { listExtensionClientContextAssets } = require("./webview-assets");
+const { listExtensionClientContextAssets, resolveWebviewAssetsDir } = require("./webview-assets");
 
 const MARKER = "__augment_byok_webview_history_summary_node_slim_v1";
 const PATCH_LABEL = "extension-client-context HISTORY_SUMMARY node slimming";
@@ -49,7 +50,25 @@ function patchExtensionClientContextAsset(filePath) {
 }
 
 function patchWebviewHistorySummaryNode(extensionDir) {
-  const candidates = listExtensionClientContextAssets(extensionDir, "patchWebviewHistorySummaryNode");
+  let candidates;
+  try {
+    candidates = listExtensionClientContextAssets(extensionDir, "patchWebviewHistorySummaryNode");
+  } catch (_) {
+    // upstream may have renamed the bundle; fall back to scanning all JS assets for HISTORY_SUMMARY
+    const assetsDir = resolveWebviewAssetsDir(extensionDir, "patchWebviewHistorySummaryNode");
+    candidates = fs
+      .readdirSync(assetsDir)
+      .filter((name) => name.endsWith(".js") && !name.endsWith(".js.map"))
+      .map((name) => path.join(assetsDir, name))
+      .filter((filePath) => {
+        try {
+          return fs.readFileSync(filePath, "utf8").includes("HISTORY_SUMMARY");
+        } catch (_e) {
+          return false;
+        }
+      });
+    if (!candidates.length) return { changed: false, reason: "upstream_removed" };
+  }
   const results = [];
   for (const filePath of candidates) results.push({ filePath, ...patchExtensionClientContextAsset(filePath) });
   return { changed: results.some((r) => r.changed), results };
