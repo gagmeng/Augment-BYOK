@@ -16,14 +16,14 @@ test("text-stream-output: coerceTextDelta normalizes stringable values", () => {
 
 test("text-stream-output: buildByokTextTraceLabel keeps route/delegate context", () => {
   const label = buildByokTextTraceLabel({
-    ep: "/instruction-stream",
+    ep: "/prompt-enhancer",
     requestId: "rid_1",
     route: { provider: { id: "p1" }, model: "gpt-5.2" },
     delegatedSource: "upstream.callApiBody.messages",
     labelSuffix: "complete"
   });
 
-  assert.match(label, /\[callApiStream \/instruction-stream\]/);
+  assert.match(label, /\[callApiStream \/prompt-enhancer\]/);
   assert.match(label, /rid=rid_1/);
   assert.match(label, /complete/);
   assert.match(label, /model=gpt-5.2/);

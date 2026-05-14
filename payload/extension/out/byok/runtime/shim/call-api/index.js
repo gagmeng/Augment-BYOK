@@ -122,8 +122,7 @@ const CALL_API_HANDLERS = {
   "/get-models": handleGetModels,
   "/chat": handleChat,
   "/completion": handleCompletion,
-  "/chat-input-completion": handleCompletion,
-  "/next_edit_loc": handleNextEditLoc
+  "/chat-input-completion": handleCompletion
 };
 
 const SUPPORTED_CALL_API_ENDPOINTS = Object.freeze(Object.keys(CALL_API_HANDLERS).sort());

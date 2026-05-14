@@ -1,17 +1,17 @@
-# ENDPOINTS：52 / 11（上游端点范围）
+# ENDPOINTS：52 / 8（上游端点范围）
 
 数据源：
 - `.cache/reports/upstream-analysis.json`（端点全集；`npm run upstream:analyze`）
 - `dist/endpoint-coverage.report.md`（LLM 端点覆盖矩阵；`npm run report:coverage`）
 
 默认策略：
-- BYOK 运行时代码只对 **11 个 LLM 数据面端点**提供语义实现（其余端点保持 official，或按需 disabled）。
+- BYOK 运行时代码只对 **8 个 LLM 数据面端点**提供语义实现（其余端点保持 official，或按需 disabled）。
 
-## 11 个 LLM 数据面（BYOK 语义实现）
+## 8 个 LLM 数据面（BYOK 语义实现）
 
 <!-- BEGIN GENERATED: LLM_ENDPOINTS -->
-- `callApi`（5）：`/get-models`、`/chat`、`/completion`、`/chat-input-completion`、`/next_edit_loc`
-- `callApiStream`（6）：`/chat-stream`、`/prompt-enhancer`、`/instruction-stream`、`/smart-paste-stream`、`/next-edit-stream`、`/generate-commit-message-stream`
+- `callApi`（4）：`/get-models`、`/chat`、`/completion`、`/chat-input-completion`
+- `callApiStream`（4）：`/chat-stream`、`/prompt-enhancer`、`/next-edit-stream`、`/generate-commit-message-stream`
 <!-- END GENERATED: LLM_ENDPOINTS -->
 
 ## 真实环境触发方式（端点验收清单）

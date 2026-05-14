@@ -26,7 +26,7 @@ test("official-text-delegation: builds from endpoint fields for completion", asy
 
 test("official-text-delegation: builds from messages[] and keeps system as system text", async () => {
   const res = await maybeBuildDelegatedTextPrompt({
-    endpoint: "/instruction-stream",
+    endpoint: "/prompt-enhancer",
     body: {
       messages: [
         { role: "system", content: "SYSTEM_RULES" },

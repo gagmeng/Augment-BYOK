@@ -1,6 +1,6 @@
 "use strict";
 
-// 单一真相：LLM 端点集合（11）+ 输入/输出形状摘要 + 上游期望 Back 类型
+// 单一真相：LLM 端点集合（8）+ 输入/输出形状摘要 + 上游期望 Back 类型
 // - 用于生成覆盖矩阵报告（markdown）
 // - 用于 CI fail-fast：上游若移除/新增/改变调用类型（callApi vs callApiStream）会直接失败
 
@@ -42,15 +42,6 @@ const LLM_ENDPOINT_SPECS = [
     byokImpl: "chat-input completion prompt -> provider.completeText -> BackCompletionResult(completion_items[0].text)"
   },
   {
-    endpoint: "/next_edit_loc",
-    kind: "callApi",
-    meaning: "Next Edit 定位（候选位置 JSON）",
-    upstreamBackType: "BackNextEditLocationResult",
-    inputKeys: ["instruction", "path", "diagnostics?", "recent_changes?", "blobs?", "edit_events?", "vcs_change?", "num_results?", "is_single_file?"],
-    outputKeys: ["candidate_locations[]", "unknown_blob_names[]", "checkpoint_not_found", "critical_errors[]"],
-    byokImpl: "provider.completeText -> parse candidate_locations + diagnostics-first fallback"
-  },
-  {
     endpoint: "/chat-stream",
     kind: "callApiStream",
     meaning: "核心聊天流（Augment NDJSON）",
@@ -67,24 +58,6 @@ const LLM_ENDPOINT_SPECS = [
     inputKeys: ["nodes", "chat_history", "blobs?", "conversation_id?", "model", "mode?", "user_guided_blobs?", "external_source_ids?", "user_guidelines?", "workspace_guidelines?", "rules?"],
     outputKeys: ["text (enhanced prompt delta)", "unknown_blob_names[]", "checkpoint_not_found", "workspace_file_chunks[]", "nodes[] (first chunk only)"],
     byokImpl: "prompt rewrite stream (BackChatResult)"
-  },
-  {
-    endpoint: "/instruction-stream",
-    kind: "callApiStream",
-    meaning: "指令生成/改写（stream）",
-    upstreamBackType: "BackChatInstructionStreamResult (stream chunks)",
-    inputKeys: ["model", "instruction", "prefix?", "selected_text", "suffix?", "path?", "lang?", "blob_name?", "prefix_begin?", "suffix_end?", "blobs?", "chat_history?", "context_code_exchange_request_id?", "user_guidelines?", "workspace_guidelines?"],
-    outputKeys: ["text (delta)", "replacement_text?", "replacement_old_text?", "replacement_start_line?", "replacement_end_line?"],
-    byokImpl: "instruction stream -> {text,+replacement meta}"
-  },
-  {
-    endpoint: "/smart-paste-stream",
-    kind: "callApiStream",
-    meaning: "Smart Paste（stream）",
-    upstreamBackType: "BackChatInstructionStreamResult (stream chunks)",
-    inputKeys: ["model", "instruction", "prefix?", "selected_text", "suffix?", "path?", "lang?", "blob_name?", "prefix_begin?", "suffix_end?", "blobs?", "chat_history?", "code_block?", "target_file_path?", "target_file_content?", "context_code_exchange_request_id?"],
-    outputKeys: ["text (delta)", "replacement_text?", "replacement_old_text?", "replacement_start_line?", "replacement_end_line?"],
-    byokImpl: "smart paste stream -> {text,+replacement meta}"
   },
   {
     endpoint: "/next-edit-stream",
