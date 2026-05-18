@@ -1,17 +1,17 @@
-# ENDPOINTS：52 / 8（上游端点范围）
+# ENDPOINTS：52 / 7（上游端点范围）
 
 数据源：
 - `.cache/reports/upstream-analysis.json`（端点全集；`npm run upstream:analyze`）
 - `dist/endpoint-coverage.report.md`（LLM 端点覆盖矩阵；`npm run report:coverage`）
 
 默认策略：
-- BYOK 运行时代码只对 **8 个 LLM 数据面端点**提供语义实现（其余端点保持 official，或按需 disabled）。
+- BYOK 运行时代码只对 **7 个 LLM 数据面端点**提供语义实现（其余端点保持 official，或按需 disabled）。
 
-## 8 个 LLM 数据面（BYOK 语义实现）
+## 7 个 LLM 数据面（BYOK 语义实现）
 
 <!-- BEGIN GENERATED: LLM_ENDPOINTS -->
 - `callApi`（4）：`/get-models`、`/chat`、`/completion`、`/chat-input-completion`
-- `callApiStream`（4）：`/chat-stream`、`/prompt-enhancer`、`/next-edit-stream`、`/generate-commit-message-stream`
+- `callApiStream`（3）：`/chat-stream`、`/prompt-enhancer`、`/generate-commit-message-stream`
 <!-- END GENERATED: LLM_ENDPOINTS -->
 
 ## 真实环境触发方式（端点验收清单）
@@ -20,14 +20,13 @@
 
 前置：
 - 安装 BYOK VSIX → `BYOK: Enable`
-- 确认 Endpoint Rules 对目标端点为 `byok`（面板默认已覆盖 11 个）
+- 确认 Endpoint Rules 对目标端点为 `byok`（面板默认已覆盖 10 个）
 
 触发方式（可在命令面板搜同名关键词）：
 - `/chat`、`/chat-stream`：正常对话（发送一条消息；流式输出会命中 `/chat-stream`）
 - `/completion`：编辑器内联补全/代码补全（输入几字符等待建议）
 - `/chat-input-completion`：Chat 输入框补全（在 Chat 输入框打字等待建议）
 - `/next_edit_loc`：触发 Next Edit 定位（候选位置）
-- `/next-edit-stream`：触发 Next Edit 生成（建议代码/补丁）
 - `/prompt-enhancer`：触发“提示词增强/改写”功能
 - `/instruction-stream`：触发“Instruction/指令生成”功能（通常为对选区下指令并流式产出替换内容）
 - `/smart-paste-stream`：触发 Smart Paste（把一段代码粘贴到编辑器并走 Smart Paste 流程）
@@ -46,6 +45,6 @@
 ## 其余 41 个端点（非 LLM，默认 official）
 
 说明：
-- 当前上游快照：`augment/vscode-augment@0.801.0`
+- 上游快照：`augment/vscode-augment@0.876.0`
 - 这些端点变化频繁，不再在本文手工枚举；请以 `.cache/reports/upstream-analysis.json` 为准
 - 路由策略：默认 official；仅个别本地敏感端点会在默认配置里显式 `disabled`

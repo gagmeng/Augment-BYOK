@@ -7,7 +7,7 @@
   const ENDPOINT_GROUPS_V1 = [
     {
       id: "llm_data_plane",
-      label: "LLM 数据面（8）",
+      label: "LLM 数据面（7）",
       endpoints: [
         /* BEGIN GENERATED: LLM_ENDPOINTS */
         "/get-models",
@@ -16,7 +16,6 @@
         "/chat-input-completion",
         "/chat-stream",
         "/prompt-enhancer",
-        "/next-edit-stream",
         "/generate-commit-message-stream"
         /* END GENERATED: LLM_ENDPOINTS */
       ]
@@ -131,7 +130,6 @@
     "/chat-input-completion": "Chat 输入框智能补全",
     "/chat-stream": "核心聊天流（Augment NDJSON）",
     "/prompt-enhancer": "提示词增强（stream）",
-    "/next-edit-stream": "Next Edit 建议（stream）",
     "/generate-commit-message-stream": "Commit message（stream）",
     /* END GENERATED: LLM_ENDPOINT_MEANINGS */
 

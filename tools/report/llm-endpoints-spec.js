@@ -1,6 +1,6 @@
 "use strict";
 
-// 单一真相：LLM 端点集合（8）+ 输入/输出形状摘要 + 上游期望 Back 类型
+// 单一真相：LLM 端点集合（7）+ 输入/输出形状摘要 + 上游期望 Back 类型
 // - 用于生成覆盖矩阵报告（markdown）
 // - 用于 CI fail-fast：上游若移除/新增/改变调用类型（callApi vs callApiStream）会直接失败
 
@@ -58,15 +58,6 @@ const LLM_ENDPOINT_SPECS = [
     inputKeys: ["nodes", "chat_history", "blobs?", "conversation_id?", "model", "mode?", "user_guided_blobs?", "external_source_ids?", "user_guidelines?", "workspace_guidelines?", "rules?"],
     outputKeys: ["text (enhanced prompt delta)", "unknown_blob_names[]", "checkpoint_not_found", "workspace_file_chunks[]", "nodes[] (first chunk only)"],
     byokImpl: "prompt rewrite stream (BackChatResult)"
-  },
-  {
-    endpoint: "/next-edit-stream",
-    kind: "callApiStream",
-    meaning: "Next Edit 建议（stream）",
-    upstreamBackType: "BackNextEditGenerationResult (single event)",
-    inputKeys: ["model", "instruction", "prefix?", "selected_text?", "suffix?", "selection_begin_char?", "selection_end_char?", "path?", "blob_name?", "lang?", "blobs?", "recent_changes?", "diagnostics?", "blocked_locations?", "edit_events?", "mode?", "scope?", "api_version?", "sequence_id?"],
-    outputKeys: ["unknown_blob_names[]", "checkpoint_not_found", "next_edit{suggestion_id,path,blob_name,char_start,char_end,existing_code,suggested_code,...}"],
-    byokImpl: "provider.completeText -> BackNextEditGenerationResult(next_edit)"
   },
   {
     endpoint: "/generate-commit-message-stream",

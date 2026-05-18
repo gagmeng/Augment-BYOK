@@ -71,7 +71,6 @@ function defaultConfig() {
         "/chat-input-completion": { mode: "byok" },
         "/chat-stream": { mode: "byok" },
         "/prompt-enhancer": { mode: "byok" },
-        "/next-edit-stream": { mode: "byok" },
         "/generate-commit-message-stream": { mode: "byok" },
         /* END GENERATED: DEFAULT_LLM_ROUTING_RULES */
 

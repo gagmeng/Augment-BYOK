@@ -91,7 +91,6 @@ function main(argv = process.argv) {
     "out/byok/core/tool-pairing/anthropic.js",
     "out/byok/core/next-edit/fields.js",
     "out/byok/core/next-edit/loc-utils.js",
-    "out/byok/core/next-edit/stream-utils.js",
     "out/byok/infra/constants.js",
     "out/byok/infra/util.js",
     "out/byok/infra/log.js",

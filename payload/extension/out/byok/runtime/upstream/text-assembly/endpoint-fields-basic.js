@@ -176,32 +176,6 @@ function tryFromEndpointFieldsBasic(endpoint, rawBody) {
     return { ok: true, system, messages: [{ role: "user", content: user }], source: "byok.endpointFields.generate-commit-message-stream" };
   }
 
-  if (ep === "/next-edit-stream") {
-    const lang = normalizeString(b.lang);
-    const path = normalizeString(b.path);
-    const instruction = normalizeString(b.instruction) || "Propose the next code edit.";
-    const { prefix, selectedText, suffix } = extractCodeContext(b);
-    if (!normalizeString(prefix) && !normalizeString(selectedText) && !normalizeString(suffix)) return null;
-
-    const system = buildSystem({
-      purpose: "next-edit-stream",
-      directives,
-      outputConstraints:
-        "Propose the next minimal edit.\n- Output ONLY the replacement code for the selected range\n- No markdown, no explanations\n- Do NOT wrap in ``` code fences"
-    });
-
-    const parts = [];
-    if (instruction) parts.push(fmtSection("Instruction", instruction));
-    if (path) parts.push(fmtSection("Path", path));
-    if (lang) parts.push(fmtSection("Language", lang));
-    if (prefix) parts.push(fmtCodeSection("Prefix", prefix, { lang }));
-    if (selectedText) parts.push(fmtCodeSection("Selected (replace this)", selectedText, { lang }));
-    if (suffix) parts.push(fmtCodeSection("Suffix", suffix, { lang }));
-    const user = parts.filter(Boolean).join("\n\n").trim();
-    if (!user) return null;
-    return { ok: true, system, messages: [{ role: "user", content: user }], source: "byok.endpointFields.next-edit-stream" };
-  }
-
   return null;
 }
 

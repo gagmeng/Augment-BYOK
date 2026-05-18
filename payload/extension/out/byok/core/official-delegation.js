@@ -17,7 +17,6 @@ const OFFICIAL_EXECUTION_DELEGATION_ENDPOINTS = Object.freeze([
   "/chat-input-completion",
   "/chat-stream",
   "/prompt-enhancer",
-  "/next-edit-stream",
   "/generate-commit-message-stream"
   /* END GENERATED: OFFICIAL_EXECUTION_DELEGATION_ENDPOINTS */
 ]);

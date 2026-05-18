@@ -1,13 +1,11 @@
 "use strict";
 
-const { withTiming, traceAsyncGenerator } = require("../../../infra/trace");
+const { traceAsyncGenerator } = require("../../../infra/trace");
 const { normalizeString, safeTransform, emptyAsyncGenerator } = require("../../../infra/util");
 const { makeEndpointErrorText, guardObjectStream } = require("../../../core/stream-guard");
-const { makeBackChatResult, makeBackNextEditGenerationChunk } = require("../../../core/protocol");
-const { pickPath, pickBlobNameHint } = require("../../../core/next-edit/fields");
-const { buildNextEditStreamRuntimeContext } = require("../../../core/next-edit/stream-utils");
+const { makeBackChatResult } = require("../../../core/protocol");
 const { STOP_REASON_END_TURN, makeBackChatChunk } = require("../../../core/augment-protocol");
-const { byokCompleteText, byokStreamText } = require("../byok-text");
+const { byokStreamText } = require("../byok-text");
 const { byokChatStream } = require("../byok-chat-stream");
 const { resolveByokRouteContext } = require("../route");
 const { resolveByokTextPromptContext } = require("../text-assembly");
@@ -16,7 +14,7 @@ const {
   wrapChatResultTextDeltas,
   wrapInstructionTextDeltas
 } = require("../text-stream-output");
-const { maybeAugmentBodyWithWorkspaceBlob, buildInstructionReplacementMeta } = require("../next-edit");
+const { buildInstructionReplacementMeta } = require("../next-edit");
 const { formatRouteForLog } = require("../common");
 const { rememberUpstreamCallHost } = require("../../upstream/discovery");
 
@@ -96,45 +94,10 @@ async function handleInstructionLikeStream({ cfg, route, ep, body, transform, ti
   });
 }
 
-async function handleNextEditStream({ cfg, route, ep, body, transform, timeoutMs, abortSignal, requestId }) {
-  const b = body && typeof body === "object" ? body : {};
-  const hasPrefix = typeof b.prefix === "string";
-  const hasSuffix = typeof b.suffix === "string";
-  const bodyForContext =
-    hasPrefix && hasSuffix
-      ? b
-      : await maybeAugmentBodyWithWorkspaceBlob(body, { pathHint: pickPath(body), blobKey: pickBlobNameHint(body) });
-
-  const { promptBody, path, blobName, selectionBegin, selectionEnd, existingCode } = buildNextEditStreamRuntimeContext(bodyForContext);
-  const { system, messages, delegatedSource } = await resolveByokTextPromptContext({
-    cfg,
-    route,
-    endpoint: ep,
-    body: promptBody
-  });
-  const label = buildByokTextTraceLabel({ ep, requestId, route, delegatedSource, labelSuffix: "complete" });
-  const suggestedCode = await withTiming(label, async () =>
-    await byokCompleteText({ provider: route.provider, model: route.model, system, messages, timeoutMs, abortSignal })
-  );
-
-  const raw = makeBackNextEditGenerationChunk({
-    path: path || blobName,
-    blobName,
-    charStart: selectionBegin,
-    charEnd: selectionEnd,
-    existingCode,
-    suggestedCode
-  });
-  return (async function* () {
-    yield safeTransform(transform, raw, ep);
-  })();
-}
-
 const CALL_API_STREAM_HANDLERS = {
   "/chat-stream": handleChatStream,
   "/prompt-enhancer": handleChatResultDeltaStream,
-  "/generate-commit-message-stream": handleChatResultDeltaStream,
-  "/next-edit-stream": handleNextEditStream
+  "/generate-commit-message-stream": handleChatResultDeltaStream
 };
 
 const SUPPORTED_CALL_API_STREAM_ENDPOINTS = Object.freeze(Object.keys(CALL_API_STREAM_HANDLERS).sort());

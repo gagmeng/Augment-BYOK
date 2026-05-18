@@ -115,9 +115,6 @@
       "/smart-paste-stream": {
         "mode": "byok"
       },
-      "/next-edit-stream": {
-        "mode": "byok"
-      },
       "/generate-commit-message-stream": {
         "mode": "byok"
       },

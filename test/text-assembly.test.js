@@ -2,7 +2,6 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 
 const { resolveByokTextPromptContext } = require("../payload/extension/out/byok/runtime/shim/text-assembly");
-const { buildNextEditStreamRuntimeContext } = require("../payload/extension/out/byok/core/next-edit/stream-utils");
 
 test("text-assembly: delegated hit uses upstream body and skips endpoint extra system", async () => {
   const res = await resolveByokTextPromptContext({
@@ -39,36 +38,6 @@ test("text-assembly: unsupported endpoint throws", async () => {
       }),
     /official text assembler delegation failed: unsupported_endpoint/
   );
-});
-
-test("text-assembly: next-edit-stream accepts blob plus selection-only context", async () => {
-  const { promptBody, existingCode, selectionBegin, selectionEnd } = buildNextEditStreamRuntimeContext({
-    path: "src/a.js",
-    blob_name: "src/a.js",
-    blobs: {
-      "src/a.js": "const a = 1;\nconst b = 2;\n"
-    },
-    instruction: "change selected number",
-    selection_begin_char: 10,
-    selection_end_char: 11
-  });
-
-  assert.equal(existingCode, "1");
-  assert.equal(selectionBegin, 10);
-  assert.equal(selectionEnd, 11);
-  assert.equal(typeof promptBody.prefix, "string");
-  assert.equal(promptBody.selected_text, "1");
-  assert.equal(typeof promptBody.suffix, "string");
-
-  const res = await resolveByokTextPromptContext({
-    endpoint: "/next-edit-stream",
-    body: promptBody
-  });
-
-  assert.equal(res.delegatedSource, "byok.endpointFields.next-edit-stream");
-  assert.equal(Array.isArray(res.messages), true);
-  assert.equal(res.messages.length, 1);
-  assert.ok(res.messages[0].content.includes("Selected (replace this)"));
 });
 
 test("text-assembly: removed endpoints are rejected", async () => {

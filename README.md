@@ -33,14 +33,14 @@
 
 协议适配细节（工具/stop_reason/用量/兜底/常见网关差异）见 `docs/PROVIDERS.md`。
 
-## 11 个端点（会被 BYOK shim 接管）
+## 10 个端点（会被 BYOK shim 接管）
 
 - `callApi`（5）：`/get-models`、`/chat`、`/completion`、`/chat-input-completion`、`/next_edit_loc`
-- `callApiStream`（6）：`/chat-stream`、`/prompt-enhancer`、`/instruction-stream`、`/smart-paste-stream`、`/next-edit-stream`、`/generate-commit-message-stream`
+- `callApiStream`（5）：`/chat-stream`、`/prompt-enhancer`、`/instruction-stream`、`/smart-paste-stream`、`/generate-commit-message-stream`
 
-> 上游 `augment/vscode-augment@0.801.0` 已移除 `/edit` 与 `/generate-conversation-title`，因此默认 BYOK 覆盖矩阵同步收敛为 11 个端点。
+> 上游 `augment/vscode-augment@0.876.0` 已移除 `/edit`、`/generate-conversation-title` 和 `/next-edit-stream`，因此默认 BYOK 覆盖矩阵同步收敛为 10 个端点。
 
-完整端点范围（52/11）见 `docs/ENDPOINTS.md`。
+完整端点范围见 `docs/ENDPOINTS.md`。
 
 ## 排障（高频）
 
@@ -269,10 +269,10 @@
 - [x] LLM 覆盖矩阵：`npm run report:coverage` → `dist/endpoint-coverage.report.md`
 - [x] 端点文档：`docs/ENDPOINTS.md`
 
-#### 5.2 11 个 LLM 数据面端点（BYOK 语义实现）
+#### 5.2 10 个 LLM 数据面端点（BYOK 语义实现）
 
 - [x] `callApi`（5）：`/get-models`、`/chat`、`/completion`、`/chat-input-completion`、`/next_edit_loc`
-- [x] `callApiStream`（6）：`/chat-stream`、`/prompt-enhancer`、`/instruction-stream`、`/smart-paste-stream`、`/next-edit-stream`、`/generate-commit-message-stream`
+- [x] `callApiStream`（5）：`/chat-stream`、`/prompt-enhancer`、`/instruction-stream`、`/smart-paste-stream`、`/generate-commit-message-stream`
 - [x] 单一真相维护：`tools/report/llm-endpoints-spec.js`
 - [x] 自动生成同步：`npm run gen:llm-endpoints`（更新 `docs/ENDPOINTS.md` + UI + 默认 routing rules）
 
@@ -360,13 +360,6 @@
 #### 7.5 `/generate-commit-message-stream`（流式：chat_result delta 包装）
 
 - [x] 语义同 `/prompt-enhancer`（同一实现）
-
-#### 7.6 `/next-edit-stream`（伪流式：一次性生成 next edit chunk）
-
-- [x] 若请求缺 prefix/suffix：自动从 workspace blob 补齐上下文（pathHint + blobNameHint）
-- [x] 调用 provider 非流式 complete：一次性生成 `suggestedCode`
-- [x] 输出结构：`makeBackNextEditGenerationChunk({ path, blobName, charStart, charEnd, existingCode, suggestedCode })`
-- [-] 当前实现为单 chunk（不做逐 token streaming），但保持 stream 接口兼容上游调用方式
 
 ### 8) Provider 支持矩阵（上游 LLM 兼容层）
 
