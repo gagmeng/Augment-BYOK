@@ -11,10 +11,8 @@ const { resolveByokRouteContext } = require("../route");
 const { resolveByokTextPromptContext } = require("../text-assembly");
 const {
   buildByokTextTraceLabel,
-  wrapChatResultTextDeltas,
-  wrapInstructionTextDeltas
+  wrapChatResultTextDeltas
 } = require("../text-stream-output");
-const { buildInstructionReplacementMeta } = require("../next-edit");
 const { formatRouteForLog } = require("../common");
 const { rememberUpstreamCallHost } = require("../../upstream/discovery");
 
@@ -76,21 +74,6 @@ async function handleChatResultDeltaStream({ cfg, route, ep, body, transform, ti
     requestId,
     route,
     makeErrorChunk: (err) => makeBackChatResult(makeEndpointErrorText(ep, err), { nodes: [] })
-  });
-}
-
-async function handleInstructionLikeStream({ cfg, route, ep, body, transform, timeoutMs, abortSignal, requestId }) {
-  const meta = await buildInstructionReplacementMeta(body);
-  const deltas = await makeByokTextDeltas({ cfg, route, ep, body, timeoutMs, abortSignal, requestId, labelSuffix: "delta" });
-  const src = wrapInstructionTextDeltas(deltas, { meta });
-
-  return guardWithMeta({
-    ep,
-    transform,
-    src,
-    requestId,
-    route,
-    makeErrorChunk: (err) => ({ text: makeEndpointErrorText(ep, err), ...meta })
   });
 }
 

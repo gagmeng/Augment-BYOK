@@ -1,15 +1,11 @@
 "use strict";
 
-const { normalizeString, randomId } = require("../infra/util");
+const { normalizeString } = require("../infra/util");
 const { applyChatResponseMeta } = require("./chat-response-meta");
 const { ensureModelRegistryFeatureFlags } = require("./model-registry");
 
 function coerceText(text) {
   return typeof text === "string" ? text : String(text ?? "");
-}
-
-function makeBackTextResult(text, extra) {
-  return { text: coerceText(text), unknown_blob_names: [], checkpoint_not_found: false, ...(extra && typeof extra === "object" ? extra : null) };
 }
 
 function makeBackChatResult(text, { nodes, includeNodes = true, meta } = {}) {
@@ -31,41 +27,6 @@ function makeBackCompletionResult(text, { timeoutMs, suggestedPrefixCharCount, s
     suggested_prefix_char_count: Number.isFinite(Number(suggestedPrefixCharCount)) ? Number(suggestedPrefixCharCount) : 0,
     suggested_suffix_char_count: Number.isFinite(Number(suggestedSuffixCharCount)) ? Number(suggestedSuffixCharCount) : 0,
     completion_timeout_ms: Number.isFinite(Number(timeoutMs)) ? Number(timeoutMs) : 0
-  };
-}
-
-function makeBackNextEditGenerationChunk({ path, blobName, charStart, charEnd, existingCode, suggestedCode }) {
-  const p = normalizeString(path) || "(unknown)";
-  const b = normalizeString(blobName) || "(unknown)";
-  const cs = Number.isFinite(Number(charStart)) ? Number(charStart) : 0;
-  const ce = Number.isFinite(Number(charEnd)) && Number(charEnd) >= cs ? Number(charEnd) : cs;
-  const ex = typeof existingCode === "string" ? existingCode : "";
-  const su = typeof suggestedCode === "string" ? suggestedCode : "";
-  return {
-    unknown_blob_names: [],
-    checkpoint_not_found: false,
-    next_edit: {
-      suggestion_id: `byok:${randomId()}`,
-      path: p,
-      blob_name: b,
-      char_start: cs,
-      char_end: ce,
-      existing_code: ex,
-      suggested_code: su,
-      change_description: "BYOK suggestion",
-      editing_score: 1,
-      localization_score: 1,
-      editing_score_threshold: 1
-    }
-  };
-}
-
-function makeBackNextEditLocationResult(candidate_locations) {
-  return {
-    candidate_locations: Array.isArray(candidate_locations) ? candidate_locations : [],
-    unknown_blob_names: [],
-    checkpoint_not_found: false,
-    critical_errors: []
   };
 }
 
@@ -125,11 +86,8 @@ function makeModelInfo(name) {
 }
 
 module.exports = {
-  makeBackTextResult,
   makeBackChatResult,
   makeBackCompletionResult,
-  makeBackNextEditGenerationChunk,
-  makeBackNextEditLocationResult,
   buildByokModelsFromConfig,
   makeBackGetModelsResult,
   makeModelInfo

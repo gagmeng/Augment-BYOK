@@ -104,8 +104,8 @@
 
 ## Routing / Model 选择（关键语义）
 
-- BYOK 只对 **11 个 LLM 数据面端点**提供语义实现：见 `docs/ENDPOINTS.md`
-  - 其它端点即使设置 `mode=byok`，也会回落 official（因为 runtime shim 只实现了 11 个）
+- BYOK 只对 **7 个 LLM 数据面端点**提供语义实现：见 `docs/ENDPOINTS.md`
+  - 其它端点即使设置 `mode=byok`，也会回落 official（因为 runtime shim 只实现了 7 个）
 - model id 约定：`byok:<providerId>:<modelId>`
   - `/get-models` 会把 `providers[].models` 注入到 model registry（含 feature flags），从而让上游能选择 `byok:*`
 - Model Picker（主面板模型选择）与 Endpoint Rules 的优先级（仅 BYOK 路径生效）

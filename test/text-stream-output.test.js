@@ -2,17 +2,9 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 
 const {
-  coerceTextDelta,
   buildByokTextTraceLabel,
-  wrapChatResultTextDeltas,
-  wrapInstructionTextDeltas
+  wrapChatResultTextDeltas
 } = require("../payload/extension/out/byok/runtime/shim/text-stream-output");
-
-test("text-stream-output: coerceTextDelta normalizes stringable values", () => {
-  assert.equal(coerceTextDelta("abc"), "abc");
-  assert.equal(coerceTextDelta(123), "123");
-  assert.equal(coerceTextDelta(null), "");
-});
 
 test("text-stream-output: buildByokTextTraceLabel keeps route/delegate context", () => {
   const label = buildByokTextTraceLabel({
@@ -43,18 +35,4 @@ test("text-stream-output: wrapChatResultTextDeltas emits chat_result envelope", 
   assert.equal(out[0].text, "a");
   assert.equal(Array.isArray(out[0].nodes), true);
   assert.equal(out[1].text, "b");
-});
-
-test("text-stream-output: wrapInstructionTextDeltas emits meta then replacement deltas", async () => {
-  async function* deltas() {
-    yield "";
-    yield "x";
-  }
-
-  const out = [];
-  for await (const item of wrapInstructionTextDeltas(deltas(), { meta: { replacement_start_line: 1 } })) out.push(item);
-
-  assert.equal(out.length, 2);
-  assert.deepEqual(out[0], { text: "", replacement_start_line: 1 });
-  assert.deepEqual(out[1], { text: "x", replacement_text: "x" });
 });

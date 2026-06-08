@@ -7,20 +7,15 @@ const { getOfficialConnection } = require("../../../config/official");
 const { fetchOfficialGetModels } = require("../../official/get-models");
 const { ensureModelRegistryFeatureFlags } = require("../../../core/model-registry");
 const {
-  makeBackTextResult,
   makeBackCompletionResult,
-  makeBackNextEditLocationResult,
   buildByokModelsFromConfig,
   makeBackGetModelsResult,
   makeModelInfo
 } = require("../../../core/protocol");
-const { parseNextEditLocCandidatesFromText, mergeNextEditLocCandidates } = require("../../../core/next-edit/loc-utils");
-const { pickPath, pickNumResults } = require("../../../core/next-edit/fields");
 const { byokCompleteText } = require("../byok-text");
 const { byokChat } = require("../byok-chat");
 const { resolveByokRouteContext } = require("../route");
 const { resolveByokTextPromptContext } = require("../text-assembly");
-const { maybeAugmentBodyWithWorkspaceBlob, pickNextEditLocationCandidates } = require("../next-edit");
 const { providerLabel } = require("../common");
 const { rememberUpstreamCallHost } = require("../../upstream/discovery");
 
@@ -62,22 +57,17 @@ async function handleGetModels({ cfg, ep, transform, abortSignal, timeoutMs, ups
   }
 }
 
-async function completeTextForEndpoint({ cfg, route, ep, body, timeoutMs, abortSignal, requestId, kind }) {
+async function handleCompletion({ cfg, route, ep, body, transform, timeoutMs, abortSignal, requestId }) {
   const { system, messages, delegatedSource } = await resolveByokTextPromptContext({
     cfg,
     route,
     endpoint: ep,
     body
   });
-  const suffix = normalizeString(kind) || "complete";
-  const label = `[callApi ${ep}] rid=${requestId} ${suffix} provider=${providerLabel(route.provider)} model=${normalizeString(route.model) || "unknown"}${delegatedSource ? ` delegate=${delegatedSource}` : ""}`;
-  return await withTiming(label, async () =>
+  const label = `[callApi ${ep}] rid=${requestId} complete provider=${providerLabel(route.provider)} model=${normalizeString(route.model) || "unknown"}${delegatedSource ? ` delegate=${delegatedSource}` : ""}`;
+  const text = await withTiming(label, async () =>
     await byokCompleteText({ provider: route.provider, model: route.model, system, messages, timeoutMs, abortSignal })
   );
-}
-
-async function handleCompletion({ cfg, route, ep, body, transform, timeoutMs, abortSignal, requestId }) {
-  const text = await completeTextForEndpoint({ cfg, route, ep, body, timeoutMs, abortSignal, requestId, kind: "complete" });
   return safeTransform(transform, makeBackCompletionResult(text), ep);
 }
 
@@ -95,27 +85,6 @@ async function handleChat({ cfg, route, ep, body, transform, timeoutMs, abortSig
     requestId
   });
   return safeTransform(transform, out, ep);
-}
-
-async function handleNextEditLoc({ cfg, route, ep, body, transform, timeoutMs, abortSignal, requestId }) {
-  const b = body && typeof body === "object" ? body : {};
-  const max = pickNumResults(b, { defaultValue: 1, max: 6 });
-
-  const baseline = pickNextEditLocationCandidates(body);
-  const fallbackPath = pickPath(b) || normalizeString(baseline?.[0]?.item?.path);
-  let llmCandidates = [];
-
-  try {
-    const bodyForPrompt = await maybeAugmentBodyWithWorkspaceBlob(body, { pathHint: fallbackPath });
-    const text = await completeTextForEndpoint({ cfg, route, ep, body: bodyForPrompt, timeoutMs, abortSignal, requestId, kind: "llm" });
-    llmCandidates = parseNextEditLocCandidatesFromText(text, { fallbackPath, max, source: "byok:llm" });
-  } catch (err) {
-    warn("next_edit_loc llm fallback to diagnostics", { requestId, error: err instanceof Error ? err.message : String(err) });
-  }
-
-  if (!llmCandidates.length) return safeTransform(transform, makeBackNextEditLocationResult(baseline), ep);
-  const merged = mergeNextEditLocCandidates({ baseline, llmCandidates, max });
-  return safeTransform(transform, makeBackNextEditLocationResult(merged), ep);
 }
 
 const CALL_API_HANDLERS = {

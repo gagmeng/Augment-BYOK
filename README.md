@@ -1,6 +1,6 @@
 # Augment-BYOK（请尽快 PR 合并，避免跟不上本仓库）
 
-单一 VSIX：把 Augment 的 **11 个 LLM 数据面端点**按路由转到 BYOK（支持 Streaming + tool use），其它端点保持官方行为；支持运行时一键回滚（无需 Rust/外部服务）。
+单一 VSIX：把 Augment 的 **7 个 LLM 数据面端点**按路由转到 BYOK（支持 Streaming + tool use），其它端点保持官方行为；支持运行时一键回滚（无需 Rust/外部服务）。
 
 ## 安装（推荐：Releases）
 
@@ -11,7 +11,7 @@
 
 1. 运行 `BYOK: Open Config Panel`
 2. 至少配置 1 个 `providers[]` → `Save`（Base URL 会按 type 自动填充默认值）
-3. 运行 `BYOK: Enable`（`runtimeEnabled=true` 才会接管 11 个端点）
+3. 运行 `BYOK: Enable`（`runtimeEnabled=true` 才会接管 7 个端点）
 4. 可选：在 Model Picker 选择 `byok:<providerId>:<modelId>`（由 `/get-models` 注入）
 
 配置存储：VS Code extension `globalState`（含 Key/Token；不参与 Sync）。字段与约束见 `docs/CONFIG.md`；示例见 `config.example.json`。
@@ -33,12 +33,12 @@
 
 协议适配细节（工具/stop_reason/用量/兜底/常见网关差异）见 `docs/PROVIDERS.md`。
 
-## 10 个端点（会被 BYOK shim 接管）
+## 7 个端点（会被 BYOK shim 接管）
 
-- `callApi`（5）：`/get-models`、`/chat`、`/completion`、`/chat-input-completion`、`/next_edit_loc`
-- `callApiStream`（5）：`/chat-stream`、`/prompt-enhancer`、`/instruction-stream`、`/smart-paste-stream`、`/generate-commit-message-stream`
+- `callApi`（4）：`/get-models`、`/chat`、`/completion`、`/chat-input-completion`
+- `callApiStream`（3）：`/chat-stream`、`/prompt-enhancer`、`/generate-commit-message-stream`
 
-> 上游 `augment/vscode-augment@0.876.0` 已移除 `/edit`、`/generate-conversation-title` 和 `/next-edit-stream`，因此默认 BYOK 覆盖矩阵同步收敛为 10 个端点。
+> 端点单一真相：`tools/report/llm-endpoints-spec.js`。上游 `augment/vscode-augment@0.876.0` 演进后已移除 `/edit`、`/generate-conversation-title`、`/next-edit-stream`、`/next_edit_loc`、`/instruction-stream`、`/smart-paste-stream`，BYOK 语义实现同步收敛为 7 个端点。
 
 完整端点范围见 `docs/ENDPOINTS.md`。
 
@@ -62,7 +62,7 @@
 
 - `docs/CONFIG.md`：配置/路由/字段限制（单一真相）
 - `docs/PROVIDERS.md`：4 个 provider.type 的协议适配与兼容矩阵
-- `docs/ENDPOINTS.md`：端点范围（52/11）
+- `docs/ENDPOINTS.md`：端点范围（52/7）
 - `docs/ARCH.md`：架构/最小补丁面概览/开发约束（全量修改功能清单见下文）
 
 ## 全量修改功能（对上游 VSIX 的“全量改动面”清单）
@@ -73,7 +73,7 @@
 ### 0) 总体目标与边界（Scope / Non-goals）
 
 - [x] 单一 VSIX：所有能力都打包进一个 `*.vsix`，无需 Rust/外部代理服务
-- [x] 最小破坏面：只接管 **11 个 LLM 数据面端点**（其余端点维持 official 或按需 disabled）
+- [x] 最小破坏面：只接管 **7 个 LLM 数据面端点**（其余端点维持 official 或按需 disabled）
 - [x] 可回滚：运行时一键回滚（`runtimeEnabled=false` 即回到官方链路）
 - [x] 可审计：锁定上游版本与关键注入物的 sha256，并产出覆盖矩阵/端点全集报告
 - [x] fail-fast：上游升级导致 patch needle / 合约不满足时，构建直接失败（避免 silent break）
@@ -228,7 +228,7 @@
 #### 4.6 routing.rules（端点路由规则）
 
 - [x] 规则结构：`routing.rules[endpoint]={ mode, providerId?, model? }`
-- [x] `mode=byok`：走 BYOK（仅对 11 个 LLM 数据面端点提供语义实现）
+- [x] `mode=byok`：走 BYOK（仅对 7 个 LLM 数据面端点提供语义实现）
 - [x] `mode=official`：强制走官方（即使 runtimeEnabled=true 也不接管）
 - [x] `mode=disabled`：直接 no-op（callApi 返回 `{}`，callApiStream 返回空 stream）
 - [-] 规则合并：用户 rules 与默认 rules 合并；不建议手填未知端点（上游升级可能改变集合）
@@ -261,7 +261,7 @@
 - [x] 兜底：summary 生成失败/超时/未配置时，仍会注入 fallback summary 强制压缩（避免请求过大导致直接失败）
 - [x] 兜底：`end_part_full` 中的 `tool_result` / `tool_use input` 会中间截断（保留尾部引用 id），防止单个工具输出撑爆上下文
 
-### 5) 端点覆盖（52 / 11）与路由策略
+### 5) 端点覆盖（52 / 7）与路由策略
 
 #### 5.1 端点全集与覆盖矩阵
 
@@ -269,14 +269,14 @@
 - [x] LLM 覆盖矩阵：`npm run report:coverage` → `dist/endpoint-coverage.report.md`
 - [x] 端点文档：`docs/ENDPOINTS.md`
 
-#### 5.2 10 个 LLM 数据面端点（BYOK 语义实现）
+#### 5.2 7 个 LLM 数据面端点（BYOK 语义实现）
 
-- [x] `callApi`（5）：`/get-models`、`/chat`、`/completion`、`/chat-input-completion`、`/next_edit_loc`
-- [x] `callApiStream`（5）：`/chat-stream`、`/prompt-enhancer`、`/instruction-stream`、`/smart-paste-stream`、`/generate-commit-message-stream`
+- [x] `callApi`（4）：`/get-models`、`/chat`、`/completion`、`/chat-input-completion`
+- [x] `callApiStream`（3）：`/chat-stream`、`/prompt-enhancer`、`/generate-commit-message-stream`
 - [x] 单一真相维护：`tools/report/llm-endpoints-spec.js`
 - [x] 自动生成同步：`npm run gen:llm-endpoints`（更新 `docs/ENDPOINTS.md` + UI + 默认 routing rules）
 
-#### 5.3 其余 41 个端点（默认 official / 按需 disabled）
+#### 5.3 其余 45 个端点（默认 official / 按需 disabled）
 
 - [ ] Remote Agents（15）：不接管（依赖控制面/权限/状态机），默认 official
 - [ ] Agents / Tools（6）：不接管（远程工具路由），默认 official
@@ -286,7 +286,7 @@
 - [ ] 反馈/遥测/调试（17）：不接管（部分默认 disabled，少量保持 official）
 - [ ] 通知（2）：不接管（默认 official）
 
-### 6) callApi（非流式）实现细目（5）
+### 6) callApi（非流式）实现细目（4）
 
 #### 6.1 `/get-models`（模型注册 + feature_flags 注入）
 
@@ -317,15 +317,7 @@
 
 - [x] 语义同 `/completion`（共用同一实现）
 
-#### 6.5 `/next_edit_loc`（下一处编辑位置：LLM 候选 + baseline 合并）
-
-- [x] baseline：从请求/上游能力中提取候选（若有）
-- [-] LLM 候选：通过 provider 完成文本 → 解析 JSON 候选 → 与 baseline 合并
-- [x] 最大候选数限制：上限 6（避免模型输出过大）
-- [-] 失败兜底：LLM 失败/解析失败 → 回退 baseline（不中断）
-- [-] 可选 workspace blob 注入：当缺少必要上下文时按 pathHint 拉取 workspace 内容辅助定位
-
-### 7) callApiStream（流式）实现细目（6）
+### 7) callApiStream（流式）实现细目（3）
 
 #### 7.1 `/chat-stream`（NDJSON：Augment chat chunks）
 
@@ -339,7 +331,7 @@
 - [x] max tokens：未配置时自动推断注入；上游拒绝时自动缩小并重试（仅在未输出 chunk 时重试）
 - [x] 输出补充：`checkpoint_not_found` / `workspace_file_chunks`（仅首 chunk 注入一次）
 - [x] 流式安全网：`guardObjectStream()` 将异常转换为可读错误 chunk（避免 UI 卡死）
-- [x] 文本流包装器已收敛：`chat_result delta` / `instruction-like replacement` / `next-edit complete` 共用 trace label 与 stream wrapper helper；再往下的继续清理主要是样式级收益
+- [x] 文本流包装器已收敛：`chat_result delta` 共用 trace label 与 stream wrapper helper
 
 #### 7.2 `/prompt-enhancer`（流式：chat_result delta 包装）
 
@@ -347,17 +339,7 @@
 - [x] 输出结构：把 delta 包装为 `{ text: delta, nodes: [] }` 的 chat_result 结构
 - [-] 适配不同 provider 的 SSE/JSON：content-type=JSON 时自动走 JSON 解析路径
 
-#### 7.3 `/instruction-stream`（流式：replacement_text）
-
-- [x] 首 chunk 先输出 meta（replacement_id / language 等上游所需字段）
-- [x] 后续 delta 同步写入 `text` 与 `replacement_text`（上游可直接 apply）
-- [-] 出错兜底：返回携带 meta 的错误文本（不中断整个流式会话）
-
-#### 7.4 `/smart-paste-stream`（流式：replacement_text）
-
-- [x] 语义同 `/instruction-stream`（同一实现）
-
-#### 7.5 `/generate-commit-message-stream`（流式：chat_result delta 包装）
+#### 7.3 `/generate-commit-message-stream`（流式：chat_result delta 包装）
 
 - [x] 语义同 `/prompt-enhancer`（同一实现）
 
@@ -516,7 +498,7 @@
 - [x] 审计入口：`upstream.lock.json` / `dist/upstream.lock.json` / `dist/endpoint-coverage.report.md`
 - [x] fail-fast：patch needle 缺失 / 命中 autoAuth / 合约失败 / LLM 端点 spec 漂移 / provider types 生成结果未提交
 
-### 17) 待优化 / 规划（来自 `docs/ROADMAP.md`）
+### 17) 待优化 / 规划
 
 - [ ] 去重复：进一步收敛 upstream discovery / util 逻辑（收益：减少漂移点）
 - [ ] 质量闸门：补更多纯函数单测 + 低成本“未引用/仅导出未使用”清理
