@@ -17,15 +17,11 @@ function copyDir(src, dst) {
   const st = fs.statSync(src);
   if (!st.isDirectory()) throw new Error(`copyDir: src is not directory: ${src}`);
   ensureDir(dst);
-  for (const name of fs.readdirSync(src)) {
-    const s = path.join(src, name);
-    const d = path.join(dst, name);
-    const sst = fs.statSync(s);
-    if (sst.isDirectory()) copyDir(s, d);
-    else if (sst.isFile()) {
-      ensureDir(path.dirname(d));
-      fs.copyFileSync(s, d);
-    }
+  for (const ent of fs.readdirSync(src, { withFileTypes: true })) {
+    const s = path.join(src, ent.name);
+    const d = path.join(dst, ent.name);
+    if (ent.isDirectory()) copyDir(s, d);
+    else if (ent.isFile()) fs.copyFileSync(s, d);
   }
 }
 

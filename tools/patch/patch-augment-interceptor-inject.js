@@ -3,14 +3,15 @@
 
 const path = require("path");
 
-const { readText, writeText } = require("../lib/fs");
-const { assertContainsAll, ensureMarker } = require("../lib/patch");
+const { readText } = require("../lib/fs");
+const { assertContainsAll } = require("../lib/patch");
+const { loadPatchText, savePatchText } = require("./patch-target");
 
 const MARKER = "__augment_byok_augment_interceptor_injected_v1";
 
 function patchAugmentInterceptorInject(filePath, { injectPath }) {
-  const original = readText(filePath);
-  if (original.includes(MARKER)) return { changed: false, reason: "already_patched" };
+  const { original, alreadyPatched } = loadPatchText(filePath, { marker: MARKER });
+  if (alreadyPatched) return { changed: false, reason: "already_patched" };
 
   const code = readText(injectPath);
   assertContainsAll(code, ["Augment Interceptor Injection Start", "Augment Interceptor Injection End"], "inject-code unexpected");
@@ -25,9 +26,8 @@ function patchAugmentInterceptorInject(filePath, { injectPath }) {
     "  module.exports=exports;",
     "}",
   ].join("\n");
-  let next = `${code}\n;\n${bridge}\n;\n${original}`;
-  next = ensureMarker(next, MARKER);
-  writeText(filePath, next);
+  const next = `${code}\n;\n${bridge}\n;\n${original}`;
+  savePatchText(filePath, next, { marker: MARKER });
   return { changed: true, reason: "patched" };
 }
 

@@ -2,13 +2,13 @@
 "use strict";
 
 const path = require("path");
-const { readText } = require("../lib/fs");
+const { loadPatchText } = require("./patch-target");
 const { assertContainsNone } = require("../lib/patch");
 
 function guardNoAutoAuth(filePath) {
-  const src = readText(filePath);
+  const { original } = loadPatchText(filePath);
   const needles = ["case \"/autoAuth\"", "handleAutoAuth", "__augment_byok_autoauth_patched"];
-  assertContainsNone(src, needles, "autoAuth guard failed");
+  assertContainsNone(original, needles, "autoAuth guard failed");
   return { ok: true };
 }
 

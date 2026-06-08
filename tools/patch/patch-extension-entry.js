@@ -3,21 +3,21 @@
 
 const path = require("path");
 
-const { readText, writeText } = require("../lib/fs");
 const { findExportedFactoryVar, insertBeforeSourceMappingURL } = require("../lib/patch");
+const { loadPatchText, savePatchText } = require("./patch-target");
 
 const MARKER = "__augment_byok_bootstrap_injected_v1";
 
 function patchExtensionEntry(filePath) {
-  const original = readText(filePath);
-  if (original.includes(MARKER)) return { changed: false, reason: "already_patched" };
+  const { original, alreadyPatched } = loadPatchText(filePath, { marker: MARKER });
+  if (alreadyPatched) return { changed: false, reason: "already_patched" };
 
   const activateVar = findExportedFactoryVar(original, "activate");
   const injection =
     `\n;require("./byok/runtime/bootstrap").install({vscode:require("vscode"),getActivate:()=>${activateVar},setActivate:e=>{${activateVar}=e;if(typeof module!=="undefined"&&module.exports)module.exports.activate=e;if(typeof exports!=="undefined")exports.activate=e}})\n` +
     `;/*${MARKER}*/\n`;
   const next = insertBeforeSourceMappingURL(original, injection);
-  writeText(filePath, next);
+  savePatchText(filePath, next, { marker: MARKER });
   return { changed: true, reason: "patched", activateVar };
 }
 

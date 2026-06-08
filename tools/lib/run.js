@@ -17,10 +17,11 @@ function resolvePythonSpec({ cwd, spawnSyncImpl, useCache } = {}) {
   }
 
   const candidates = [{ cmd: "python3", argsPrefix: [] }, { cmd: "py", argsPrefix: ["-3"] }, { cmd: "python", argsPrefix: [] }];
+  const failures = [];
   for (const spec of candidates) {
     const probe = runner(spec.cmd, [...spec.argsPrefix, "--version"], { cwd, stdio: "ignore" });
     if (probe?.error) {
-      if (probe.error.code === "ENOENT") continue;
+      failures.push(`${spec.cmd}${spec.argsPrefix.length ? ` ${spec.argsPrefix.join(" ")}` : ""}: ${probe.error.code || probe.error.message || "spawn error"}`);
       continue;
     }
     if (probe?.status === 0) {
@@ -28,9 +29,10 @@ function resolvePythonSpec({ cwd, spawnSyncImpl, useCache } = {}) {
       if (canUseCache) cachedPythonSpec = resolved;
       return resolved;
     }
+    failures.push(`${spec.cmd}${spec.argsPrefix.length ? ` ${spec.argsPrefix.join(" ")}` : ""}: exit ${probe?.status}`);
   }
 
-  throw new Error("python runtime not found (tried: python3, py -3, python)");
+  throw new Error(`python runtime not found (tried: ${failures.join("; ") || "python3, py -3, python"})`);
 }
 
 function runPython(args, { cwd } = {}) {

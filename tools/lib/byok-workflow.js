@@ -23,6 +23,7 @@ const { patchPackageJsonCommands } = require("../patch/patch-package-json-comman
 const { patchWebviewHistorySummaryNode } = require("../patch/patch-webview-history-summary-node");
 const { patchWebviewAssetCacheBust } = require("../patch/patch-webview-asset-cache-bust");
 const { guardNoAutoAuth } = require("../patch/guard-no-autoauth");
+const { beginPatchTextTxn, commitPatchTextTxn, rollbackPatchTextTxn } = require("../patch/patch-target");
 
 function makeLogger(prefix) {
   const p = String(prefix || "").trim();
@@ -60,47 +61,41 @@ function applyByokPatches({ repoRoot, extensionDir, pkgPath, extJsPath, intercep
   log(`patch package.json (commands)`);
   patchPackageJsonCommands(pkg);
 
-  log(`inject augment interceptor`);
-  patchAugmentInterceptorInject(extJs, { injectPath });
-
-  log(`patch entry bootstrap`);
-  patchExtensionEntry(extJs);
-
-  log(`disable upstream chat history truncation when BYOK enabled`);
-  patchDisableChatHistoryTruncation(extJs);
-
-  log(`expose upstream internals (toolsModel)`);
-  patchExposeUpstream(extJs);
-
-  log(`patch official (completionURL/apiToken from globalState config)`);
-  patchOfficialOverrides(extJs);
-
-  log(`patch auth session (treat BYOK official token as logged-in session)`);
-  patchByokAuthSession(extJs);
-
-  log(`patch callApi/callApiStream shim`);
-  patchCallApiShim(extJs);
-
-  log(`patch model picker (BYOK-only models when enabled)`);
-  patchModelPickerByokOnly(extJs);
-
-  log(`patch memories (remember tool upper_bound_size fallback)`);
-  patchMemoriesUpperBoundSize(extJs);
-
-  log(`patch tasklist tools (auto root task init)`);
-  patchTasklistAutoRoot(extJs);
-
-  log(`patch tasklist tools (add_tasks sanitize empty optional IDs)`);
-  patchTasklistAddTasksSanitizeEmptyIds(extJs);
-
-  log(`patch tasklist tools (add_tasks error reporting)`);
-  patchTasklistAddTasksErrors(extJs);
-
-  log(`patch tasklist tools (reorganize_tasklist no-op => error)`);
-  patchTasklistReorganizeNoopErrors(extJs);
-
-  log(`guard: no autoAuth`);
-  guardNoAutoAuth(extJs);
+  // extension.js 经过 13 个 patch；用内存事务把"读 -> 多次 patch -> 写"压成一次磁盘 IO。
+  log(`open extension.js patch transaction`);
+  beginPatchTextTxn(extJs);
+  const extJsSteps = [
+    ["inject augment interceptor", () => patchAugmentInterceptorInject(extJs, { injectPath })],
+    ["patch entry bootstrap", () => patchExtensionEntry(extJs)],
+    ["disable upstream chat history truncation when BYOK enabled", () => patchDisableChatHistoryTruncation(extJs)],
+    ["expose upstream internals (toolsModel)", () => patchExposeUpstream(extJs)],
+    ["patch official (completionURL/apiToken from globalState config)", () => patchOfficialOverrides(extJs)],
+    ["patch auth session (treat BYOK official token as logged-in session)", () => patchByokAuthSession(extJs)],
+    ["patch callApi/callApiStream shim", () => patchCallApiShim(extJs)],
+    ["patch model picker (BYOK-only models when enabled)", () => patchModelPickerByokOnly(extJs)],
+    ["patch memories (remember tool upper_bound_size fallback)", () => patchMemoriesUpperBoundSize(extJs)],
+    ["patch tasklist tools (auto root task init)", () => patchTasklistAutoRoot(extJs)],
+    ["patch tasklist tools (add_tasks sanitize empty optional IDs)", () => patchTasklistAddTasksSanitizeEmptyIds(extJs)],
+    ["patch tasklist tools (add_tasks error reporting)", () => patchTasklistAddTasksErrors(extJs)],
+    ["patch tasklist tools (reorganize_tasklist no-op => error)", () => patchTasklistReorganizeNoopErrors(extJs)],
+    ["guard: no autoAuth", () => guardNoAutoAuth(extJs)]
+  ];
+  try {
+    for (const [name, fn] of extJsSteps) {
+      log(`patch: ${name}`);
+      try {
+        fn();
+      } catch (err) {
+        if (err instanceof Error) err.message = `[${name}] ${err.message}`;
+        throw err;
+      }
+    }
+  } catch (err) {
+    rollbackPatchTextTxn(extJs);
+    throw err;
+  }
+  const txnResult = commitPatchTextTxn(extJs);
+  log(`commit extension.js patch transaction (wrote=${txnResult.wrote})`);
 
   log(`sanity check (node --check out/extension.js)`);
   run("node", ["--check", extJs], { cwd: root });
