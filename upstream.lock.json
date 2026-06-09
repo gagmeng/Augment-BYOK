@@ -5,7 +5,7 @@
     "sha256": "46dd6060792ddc493758550d707a437c9c3d296737c02ceeba9a06b802ba269b"
   },
   "interceptorInject": {
-    "file": "vendor\\augment-interceptor\\inject-code.augment-interceptor.v1.2.txt",
-    "sha256": "aee33df3007db71c50174cd796a750ae0dd999fa02db84e2c38f192a69d2dec0"
+    "file": "vendor/augment-interceptor/inject-code.augment-interceptor.v1.2.txt",
+    "sha256": "b62ec7971f169d4a4d886bcde85aec14ba5f055a143705ca53390fa05df6d145"
   }
 }
